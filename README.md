@@ -1,5 +1,96 @@
 # SOAT — Execution Service
 
-Microsserviço de Execução/Produção da arquitetura de microsserviços da Fase 4 do Tech Challenge (FIAP).
+Microsserviço responsável pela **Execução/Produção** dentro da arquitetura de microsserviços da Fase 4 do Tech Challenge (FIAP). Extraído do monolito [`soat-tech-challenge`](https://github.com/monnclaro/soat-tech-challenge), que permanece como referência histórica das Fases 1-3.
 
-O código-fonte (Clean Architecture, MongoDB, testes) chega via Pull Request — ver branch `scaffold/clean-architecture`.
+Plano completo da migração (arquitetura, saga, infraestrutura, ordem de execução): [`PLANO-FASE-4-MICROSSERVICOS.md`](../PLANO-FASE-4-MICROSSERVICOS.md) na raiz do workspace.
+
+## Responsabilidades
+
+- Fila de execução da oficina (o que os mecânicos acompanham).
+- Diagnóstico: registrar os serviços/produtos identificados numa OS e finalizar o diagnóstico.
+- Reparo: iniciar/finalizar a execução de cada serviço identificado, item a item.
+- Comunicar finalização do diagnóstico e da execução ao OS Service/Billing Service (via mensageria, num follow-up PR).
+
+Este serviço nunca cria uma Ordem de Serviço — ele recebe o `IdOrdemServico` (dono é o OS Service) e passa a gerenciar, a partir daí, o ciclo de diagnóstico e execução daquela OS.
+
+## Por que MongoDB
+
+Esta é a única base não-relacional das 3 (decisão validada no plano de migração, seção 1.3), e o domínio se encaixa bem no modelo de documentos:
+
+- Um documento por Ordem de Serviço (coleção `execucoes`), chaveado pelo próprio `IdOrdemServico`.
+- `Servicos[]`/`Produtos[]` são **arrays embutidos** no mesmo documento — cada um é lido/escrito sempre junto com o "cabeçalho" da execução (nunca há uma consulta que traga só os produtos de uma OS sem o resto), então não há motivo para normalizar em tabelas/coleções separadas.
+- Todo o histórico de status por item (datas de início/fim de execução) é um "snapshot" que já foi decidido no monolito de origem (`OrdemServicoServico`/`OrdemServicoProduto`) — sem necessidade de joins, integridade referencial entre serviços, ou transações multi-documento.
+- É exatamente o tipo de agregado ("fila de trabalho com sub-itens de estado") onde um banco de documentos elimina o overhead de mapeamento objeto-relacional que o EF Core exige no OS Service/Billing Service.
+
+## Arquitetura
+
+Clean Architecture, mesmo padrão validado no monolito de origem e replicado no OS Service:
+
+```
+src/
+  Domain/         # Entidades, regras de negócio, sem dependências externas
+  Application/    # Casos de uso, ports, controllers de aplicação
+  Infrastructure/ # MongoDB.Driver, segurança (validação JWT)
+  Api/            # ASP.NET Core host, controllers, presenters, middlewares
+  SharedKernel/   # Tipos cross-cutting (marcadores de DI)
+```
+
+Regras de dependência entre camadas garantidas por testes de arquitetura (NetArchTest) em `tests/Tests/Camadas`.
+
+### Agregado de domínio
+
+`ExecucaoOrdemServico` é o agregado raiz, chaveado por `IdOrdemServico`. Reúne, adaptadas a um único agregado, duas responsabilidades que viviam separadas no monolito (`soat-tech-challenge`):
+
+- **Edição de diagnóstico** — portada de `OrdemServico.InserirServicos/InserirProdutos/RemoverServico/RemoverProduto/FinalizarDiagnostico`: `AdicionarServicoDiagnosticado`, `AdicionarProdutoDiagnosticado`, `RemoverServicoDiagnosticado`, `RemoverProdutoDiagnosticado` (só permitido enquanto `Status == EmDiagnostico`) e `FinalizarDiagnostico()`.
+- **Execução por item** — portada quase inalterada de `OrdemServicoServico.IniciarExecucao/FinalizarExecucao` (hoje em `Domain/Execucoes/Itens/ItemServico.cs`): `IniciarExecucaoServico(idServico)`/`FinalizarExecucaoServico(idServico)` no agregado delegam para o item e promovem o agregado para `EmExecucao` na primeira chamada e para `Finalizada` quando o último serviço termina.
+- `Cancelar()` é o caminho de compensação da saga (veículo não atendível durante o diagnóstico, ou falha na execução).
+
+### Persistência (MongoDB)
+
+`MongoContext` é um wrapper fino sobre `IMongoDatabase`/`IMongoCollection<ExecucaoOrdemServicoDocument>` — não existe (nem faz sentido existir) um equivalente a `DbContext`/migrations do EF Core, já que MongoDB é schemaless.
+
+Optamos por um **documento de persistência separado** (`ExecucaoOrdemServicoDocument` + `ExecucaoOrdemServicoMapper`) em vez de anotar o agregado de domínio diretamente com atributos `MongoDB.Bson`:
+
+- mantém o `Domain` livre de qualquer dependência de infraestrutura (garantido pelos testes de arquitetura);
+- preserva o desenho de construtores privados/factory methods (`Abrir`, `Reidratar`) do agregado, sem precisar relaxar encapsulamento para o serializador do driver conseguir materializar o objeto.
+
+## Autenticação
+
+Este serviço **nunca emite tokens** — não há login/`AuthenticationController` aqui. Ele é um resource server puro: valida o JWT emitido pelo OS Service (ou pela Lambda de auth), usando o mesmo segredo simétrico compartilhado (`JwtSettings:Secret`, ADR 0005 do monolito de origem).
+
+## Status / escopo deste PR (scaffold)
+
+Este PR entrega o **scaffold** do serviço: Clean Architecture completa, domínio com a máquina de estados real (não é stub), casos de uso, API REST, testes de arquitetura e testes unitários do domínio.
+
+**Fora de escopo, propositalmente adiado para follow-ups** (ver `PLANO-FASE-4-MICROSSERVICOS.md`):
+- **Mensageria (RabbitMQ/MassTransit)**: os comandos `IniciarDiagnostico`/`IniciarExecucao` (consumidos do OS Service) e os eventos `DiagnosticoFinalizado`/`ExecucaoFinalizada` (publicados por este serviço) existem hoje como domain events levantados pelo agregado (`Domain/Execucoes/Eventos`) e como endpoints REST equivalentes, mas **não há producer/consumer real** — isso é ligado numa fase posterior do plano.
+- **Kubernetes** (incluindo o StatefulSet do MongoDB) e **CI/CD**: infraestrutura de deploy fica para as fases de infra do plano.
+- Testes de integração com Testcontainers (Mongo) — os testes deste PR são testes unitários de domínio + arquitetura; não há MongoDB local neste ambiente de scaffold.
+
+## Rodando localmente
+
+```bash
+cp .env.example .env   # ajuste os segredos
+docker compose up --build
+```
+
+API em `http://localhost:8083`, documentação OpenAPI (Scalar) em `/scalar` (ambiente de desenvolvimento), health check em `/health`. MongoDB exposto em `localhost:27018` (banco `soat_execucao`).
+
+## Endpoints
+
+| Método | Rota | Descrição |
+|---|---|---|
+| GET | `/api/v1/fila` | Fila de execução (registros não finalizados/cancelados) |
+| GET | `/api/v1/execucoes/{idOrdemServico}` | Detalhe da execução de uma OS |
+| PATCH | `/api/v1/execucoes/{idOrdemServico}/diagnostico/iniciar` | Inicia o diagnóstico |
+| PATCH | `/api/v1/execucoes/{idOrdemServico}/diagnostico/finalizar` | Registra serviços/produtos identificados e finaliza o diagnóstico |
+| PATCH | `/api/v1/execucoes/{idOrdemServico}/servicos/{idServico}/iniciar-execucao` | Inicia a execução de um serviço |
+| PATCH | `/api/v1/execucoes/{idOrdemServico}/servicos/{idServico}/finalizar-execucao` | Finaliza a execução de um serviço |
+
+Todos exigem `Authorization: Bearer <jwt>`.
+
+## Testes
+
+```bash
+dotnet test
+```
