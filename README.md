@@ -117,3 +117,24 @@ Todos exigem `Authorization: Bearer <jwt>`.
 ```bash
 dotnet test
 ```
+
+## CI/CD
+
+`.github/workflows/ci-cd.yml`, mesmo padrão dos outros 2 serviços:
+
+1. **Gate de cobertura (80%)** — `dotnet test` com Coverlet (`/p:Threshold=80 /p:ThresholdType=line`), falha o job se ficar abaixo.
+2. **Quality Gate do SonarCloud** — `dotnet-sonarscanner begin/end` em volta do build, consumindo o relatório OpenCover do Coverlet.
+
+Em `pull_request`, roda só `build-test`. Em `push` para `main`, roda também `deploy`: aplica o MongoDB (StatefulSet + PVC + Service headless, auto-hospedado — sem custo de serviço gerenciado adicional), aguarda ele ficar pronto, build/push da imagem no ECR e `kubectl apply` dos manifests da API em `k8s/` (namespace `soat-execucao`, NodePort `30083`).
+
+### Secrets necessários no repositório GitHub
+
+| Secret | Uso |
+|---|---|
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_SESSION_TOKEN` | Credenciais de sessão temporária da AWS Academy (deploy) |
+| `SONAR_TOKEN` | Autenticação no SonarCloud (org `monnclaro`) |
+| `NEW_RELIC_LICENSE_KEY` | Injetada no Secret do deployment |
+
+### Proteção da branch `main`
+
+Configuração manual no GitHub (Settings > Branches): exigir PR antes do merge, exigir que o check `Build, Test & Quality Gate` passe, sem push direto.

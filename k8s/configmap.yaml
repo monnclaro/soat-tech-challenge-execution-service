@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: soat-execucao-api-config
+  namespace: soat-execucao
+
+data:
+  ASPNETCORE_ENVIRONMENT: "Production"
+
+  # MongoSettings__ConnectionString, JwtSettings__Secret e RabbitMq__* saem daqui — o
+  # CI/CD gera o Secret soat-execucao-api-secret em tempo de deploy. Ver README > "Deploy".
+  MongoSettings__Database: "soat_execucao"
+
+  CORECLR_ENABLE_PROFILING: "1"
+  CORECLR_PROFILER: "{36032161-FFC0-4B61-B559-F6C5D41BAE5A}"
+  CORECLR_PROFILER_PATH: "/newrelic-instrumentation/libNewRelicProfiler.so"
+  CORECLR_NEWRELIC_HOME: "/newrelic-instrumentation"
+  NEW_RELIC_APP_NAME: "soat-execucao-service"
