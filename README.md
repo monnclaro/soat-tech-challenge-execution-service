@@ -58,14 +58,37 @@ Optamos por um **documento de persistência separado** (`ExecucaoOrdemServicoDoc
 
 Este serviço **nunca emite tokens** — não há login/`AuthenticationController` aqui. Ele é um resource server puro: valida o JWT emitido pelo OS Service (ou pela Lambda de auth), usando o mesmo segredo simétrico compartilhado (`JwtSettings:Secret`, ADR 0005 do monolito de origem).
 
-## Status / escopo deste PR (scaffold)
+## Mensageria (RabbitMQ/MassTransit)
 
-Este PR entrega o **scaffold** do serviço: Clean Architecture completa, domínio com a máquina de estados real (não é stub), casos de uso, API REST, testes de arquitetura e testes unitários do domínio.
+Ligada: `IniciarDiagnosticoConsumer` e `IniciarExecucaoConsumer` reagem aos comandos
+publicados pelo OS Service, reaproveitando os use cases já existentes (mesma regra de
+negócio dos endpoints REST internos). Como o comando `IniciarExecucao` só carrega o
+`IdOrdemServico` (o OS Service não acompanha os serviços item a item), o consumer busca a
+própria `ExecucaoOrdemServico` e inicia a execução de todos os serviços ainda
+`AguardandoExecucao`. Ao finalizar o diagnóstico ou o último serviço, publica
+`DiagnosticoFinalizado`/`ExecucaoFinalizada` (via novos handlers de domain event
+`PublicarDiagnosticoFinalizadoHandler`/`PublicarExecucaoFinalizadaHandler`). Contratos em
+`Soat.Contracts.Saga` (`src/Application/Messaging/Contracts/SagaContracts.cs`), cópia
+idêntica à dos outros dois serviços (sem pacote NuGet compartilhado — ver plano).
+
+**Verificado contra infraestrutura real** (RabbitMQ local, sem mocks): um publisher
+standalone simulando o OS Service publicou `IniciarDiagnostico`, e o consumer efetivamente
+recebeu a mensagem, chamou `IniciarDiagnosticoUseCase` e tentou persistir no MongoDB —
+sem um MongoDB rodando neste ambiente, a chamada expirou após 30s com um erro de conexão
+real do driver (não um erro de desserialização ou de roteamento), confirmando que o
+pipeline RabbitMQ → consumer → use case → gateway está corretamente ligado até a fronteira
+do banco.
+
+## Status / escopo deste PR
+
+Clean Architecture completa, domínio com a máquina de estados real (não é stub), casos de
+uso, API REST, mensageria RabbitMQ/MassTransit ligada, testes de arquitetura e testes
+unitários do domínio.
 
 **Fora de escopo, propositalmente adiado para follow-ups** (ver `PLANO-FASE-4-MICROSSERVICOS.md`):
-- **Mensageria (RabbitMQ/MassTransit)**: os comandos `IniciarDiagnostico`/`IniciarExecucao` (consumidos do OS Service) e os eventos `DiagnosticoFinalizado`/`ExecucaoFinalizada` (publicados por este serviço) existem hoje como domain events levantados pelo agregado (`Domain/Execucoes/Eventos`) e como endpoints REST equivalentes, mas **não há producer/consumer real** — isso é ligado numa fase posterior do plano.
 - **Kubernetes** (incluindo o StatefulSet do MongoDB) e **CI/CD**: infraestrutura de deploy fica para as fases de infra do plano.
 - Testes de integração com Testcontainers (Mongo) — os testes deste PR são testes unitários de domínio + arquitetura; não há MongoDB local neste ambiente de scaffold.
+- `RemoverServicoDiagnosticado`/`RemoverProdutoDiagnosticado` existem no agregado mas não têm endpoint/consumer próprio (fora da lista fixa de rotas do plano).
 
 ## Rodando localmente
 
