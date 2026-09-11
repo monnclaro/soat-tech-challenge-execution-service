@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Api.Extensions;
 using Api.Middlewares;
 using Application;
@@ -57,5 +58,7 @@ await app.RunAsync();
 
 // Ponto de ancoragem público para WebApplicationFactory (testes de integração) e
 // NetArchTest (testes de arquitetura) — top-level statements geram um Program
-// internal por padrão.
+// internal por padrão. Composição do host, sem lógica de negócio própria — excluído
+// da cobertura (não há branching que justifique um teste dedicado).
+[ExcludeFromCodeCoverage]
 public partial class Program;

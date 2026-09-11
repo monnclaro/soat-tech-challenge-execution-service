@@ -3,9 +3,10 @@ using Domain.Execucoes.Itens;
 
 namespace Domain.Execucoes.Eventos;
 
-// Ainda não publicado — a mensageria (RabbitMQ/MassTransit) chega em um follow-up PR.
-// Quando ligado, este evento vira o comando GerarOrcamento consumido pelo OS Service
-// (ver PLANO-FASE-4-MICROSSERVICOS.md, seção 1.3).
+// Publicado (via PublicarDiagnosticoFinalizadoHandler) quando o diagnóstico é
+// finalizado. O OS Service consome o evento equivalente da saga
+// (`DiagnosticoFinalizado`) e, a partir dele, comanda o Billing Service a gerar
+// o orçamento.
 public sealed record DiagnosticoFinalizadoDomainEvent(
     Guid IdOrdemServico,
     IReadOnlyList<ItemServico> Servicos,

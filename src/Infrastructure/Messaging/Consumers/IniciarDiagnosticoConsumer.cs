@@ -8,8 +8,8 @@ namespace Infrastructure.Messaging.Consumers;
 
 // Consome o comando publicado pelo OS Service ao abrir uma OS, reaproveitando o mesmo
 // IniciarDiagnosticoUseCase usado pelo endpoint interno equivalente (única fonte de
-// verdade da regra de negócio, independente do meio de entrada) — ver
-// PLANO-FASE-4-MICROSSERVICOS.md. IdCliente/IdVeiculo do comando não são usados hoje
+// verdade da regra de negócio, independente do meio de entrada). IdCliente/IdVeiculo
+// do comando não são usados hoje
 // (a fila de execução só precisa do IdOrdemServico), mas ficam disponíveis na mensagem
 // caso a fila precise exibi-los no futuro.
 public class IniciarDiagnosticoConsumer : IConsumer<IniciarDiagnostico>

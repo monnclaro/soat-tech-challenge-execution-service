@@ -5,8 +5,7 @@ using Soat.Contracts.Saga;
 namespace Application.Execucoes.EventHandlers;
 
 // Passo 2 -> 3 da saga: ao finalizar o diagnóstico, publica o evento para o OS Service
-// registrar os itens e comandar o Billing Service a gerar o orçamento — ver
-// PLANO-FASE-4-MICROSSERVICOS.md.
+// registrar os itens e comandar o Billing Service a gerar o orçamento.
 internal sealed class PublicarDiagnosticoFinalizadoHandler : IDomainEventHandler<DiagnosticoFinalizadoDomainEvent>
 {
     private readonly ISagaEventPublisher _publisher;

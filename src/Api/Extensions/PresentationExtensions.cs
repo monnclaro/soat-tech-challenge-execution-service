@@ -1,8 +1,11 @@
+using System.Diagnostics.CodeAnalysis;
 using Api.Extensions.Markers;
 using SharedKernel.Interfaces;
 
 namespace Api.Extensions;
 
+// Registro de infraestrutura (DI scanning), sem lógica de negócio — excluído da cobertura.
+[ExcludeFromCodeCoverage]
 public static class PresentationExtensions
 {
     public static IServiceCollection AddPresentation(this IServiceCollection services)

@@ -4,7 +4,7 @@ using Domain.Execucoes.Eventos;
 namespace Application.Execucoes.EventHandlers;
 
 // Último passo automático da saga: ao finalizar a execução do último serviço, publica o
-// evento para o OS Service finalizar a OS — ver PLANO-FASE-4-MICROSSERVICOS.md.
+// evento para o OS Service finalizar a OS.
 internal sealed class PublicarExecucaoFinalizadaHandler : IDomainEventHandler<ExecucaoFinalizadaDomainEvent>
 {
     private readonly ISagaEventPublisher _publisher;

@@ -1,9 +1,12 @@
+using System.Diagnostics.CodeAnalysis;
 using Application.Common.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using SharedKernel.Interfaces;
 
 namespace Application;
 
+// Registro de infraestrutura (DI scanning), sem lógica de negócio — excluído da cobertura.
+[ExcludeFromCodeCoverage]
 public static class DependencyInjection
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)

@@ -1,7 +1,7 @@
 # MongoDB auto-hospedado (StatefulSet + PVC), não um serviço gerenciado — evita custo
 # adicional na conta AWS Academy (sem DocumentDB/Atlas). 1 réplica só: é o banco NoSQL
 # de 1 único microsserviço, sem requisito de alta disponibilidade neste projeto
-# acadêmico. Ver PLANO-FASE-4-MICROSSERVICOS.md > "infra-k8s".
+# acadêmico.
 
 apiVersion: apps/v1
 kind: StatefulSet

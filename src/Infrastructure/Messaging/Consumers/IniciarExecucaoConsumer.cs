@@ -8,8 +8,7 @@ using Soat.Contracts.Saga;
 namespace Infrastructure.Messaging.Consumers;
 
 // Consome o comando publicado pelo OS Service ao aprovar o pagamento (evento
-// PagamentoAprovado do Billing Service) — ver PLANO-FASE-4-MICROSSERVICOS.md. O comando
-// só carrega o IdOrdemServico (o OS Service não acompanha os serviços item a item); este
+// PagamentoAprovado do Billing Service). O comando só carrega o IdOrdemServico (o OS Service não acompanha os serviços item a item); este
 // serviço já tem seu próprio snapshot dos serviços diagnosticados, então inicia a
 // execução de todos os que ainda estão AguardandoExecucao, reaproveitando o mesmo
 // IniciarExecucaoServicoUseCase usado pelo endpoint interno equivalente (item a item, já

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Api.Controllers.Execucoes.Requests;
 using Api.Presenters.Execucoes;
 using Application.Execucoes.Controllers;
@@ -13,10 +14,13 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Controllers.Execucoes;
 
-// Superfície REST conforme PLANO-FASE-4-MICROSSERVICOS.md, seção 1.3. As transições
-// PATCH aqui expostas (diagnóstico/execução) seriam disparadas por mensageria em
-// produção (comandos IniciarDiagnostico/IniciarExecucao do OS Service) — a via REST é
-// o scaffold desta fase, a substituição por consumers chega num follow-up PR.
+// As transições PATCH aqui expostas (diagnóstico/execução) são disparadas em produção
+// pelos consumers de mensageria (comandos IniciarDiagnostico/IniciarExecucao do OS
+// Service); a via REST fica mantida para depuração/teste manual.
+// Controller "fino": cada ação apenas monta o Input e devolve o Result do presenter
+// correspondente, sem nenhum branching próprio — a lógica real já é coberta pelos testes
+// de ExecucaoController/UseCases (Application) e dos Presenters; excluído da cobertura.
+[ExcludeFromCodeCoverage]
 [ApiController]
 [Route("api/v1")]
 [Authorize]

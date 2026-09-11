@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Application.Common.Interfaces;
 using Infrastructure.Database;
 using Infrastructure.DomainEvents;
@@ -9,6 +10,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Infrastructure;
 
+// Registro de infraestrutura (DI scanning, MassTransit/Mongo bootstrap), sem lógica de
+// negócio — excluído da cobertura.
+[ExcludeFromCodeCoverage]
 public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(

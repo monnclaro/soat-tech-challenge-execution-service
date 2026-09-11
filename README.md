@@ -2,20 +2,29 @@
 
 Microsserviço responsável pela **Execução/Produção** dentro da arquitetura de microsserviços da Fase 4 do Tech Challenge (FIAP). Extraído do monolito [`soat-tech-challenge`](https://github.com/monnclaro/soat-tech-challenge), que permanece como referência histórica das Fases 1-3.
 
-Plano completo da migração (arquitetura, saga, infraestrutura, ordem de execução): [`PLANO-FASE-4-MICROSSERVICOS.md`](../PLANO-FASE-4-MICROSSERVICOS.md) na raiz do workspace.
-
 ## Responsabilidades
 
 - Fila de execução da oficina (o que os mecânicos acompanham).
 - Diagnóstico: registrar os serviços/produtos identificados numa OS e finalizar o diagnóstico.
 - Reparo: iniciar/finalizar a execução de cada serviço identificado, item a item.
-- Comunicar finalização do diagnóstico e da execução ao OS Service/Billing Service (via mensageria, num follow-up PR).
+- Comunicar a finalização do diagnóstico e da execução ao OS Service via mensageria (RabbitMQ/MassTransit), como parte da saga orquestrada por ele.
 
 Este serviço nunca cria uma Ordem de Serviço — ele recebe o `IdOrdemServico` (dono é o OS Service) e passa a gerenciar, a partir daí, o ciclo de diagnóstico e execução daquela OS.
 
+## Papel na saga
+
+O OS Service é o orquestrador: seu próprio agregado `OrdemServico` guarda o estado da saga e reage a domain events publicando comandos. Este serviço só reage a comandos e publica eventos de volta — não conhece os outros passos da saga (orçamento, pagamento), só os dois que lhe dizem respeito:
+
+| Direção | Mensagem | Efeito neste serviço |
+|---|---|---|
+| OS Service → Execução (comando) | `IniciarDiagnostico` | Abre a fila de execução para a OS (`IniciarDiagnosticoUseCase`) |
+| Execução → OS Service (evento) | `DiagnosticoFinalizado` / `DiagnosticoFalhou` | Publicado ao finalizar o registro dos itens diagnosticados |
+| OS Service → Execução (comando) | `IniciarExecucao` | Inicia a execução de todos os serviços ainda `AguardandoExecucao` (ver "Mensageria" abaixo) |
+| Execução → OS Service (evento) | `ExecucaoFinalizada` | Publicado quando o último serviço termina a execução |
+
 ## Por que MongoDB
 
-Esta é a única base não-relacional das 3 (decisão validada no plano de migração, seção 1.3), e o domínio se encaixa bem no modelo de documentos:
+Esta é a única base não-relacional das 3 (requisito do desafio: pelo menos 1 banco relacional e 1 não-relacional), e o domínio se encaixa bem no modelo de documentos:
 
 - Um documento por Ordem de Serviço (coleção `execucoes`), chaveado pelo próprio `IdOrdemServico`.
 - `Servicos[]`/`Produtos[]` são **arrays embutidos** no mesmo documento — cada um é lido/escrito sempre junto com o "cabeçalho" da execução (nunca há uma consulta que traga só os produtos de uma OS sem o resto), então não há motivo para normalizar em tabelas/coleções separadas.
@@ -30,7 +39,7 @@ Clean Architecture, mesmo padrão validado no monolito de origem e replicado no 
 src/
   Domain/         # Entidades, regras de negócio, sem dependências externas
   Application/    # Casos de uso, ports, controllers de aplicação
-  Infrastructure/ # MongoDB.Driver, segurança (validação JWT)
+  Infrastructure/ # MongoDB.Driver, mensageria (RabbitMQ/MassTransit), segurança (validação JWT)
   Api/            # ASP.NET Core host, controllers, presenters, middlewares
   SharedKernel/   # Tipos cross-cutting (marcadores de DI)
 ```
@@ -56,39 +65,19 @@ Optamos por um **documento de persistência separado** (`ExecucaoOrdemServicoDoc
 
 ## Autenticação
 
-Este serviço **nunca emite tokens** — não há login/`AuthenticationController` aqui. Ele é um resource server puro: valida o JWT emitido pelo OS Service (ou pela Lambda de auth), usando o mesmo segredo simétrico compartilhado (`JwtSettings:Secret`, ADR 0005 do monolito de origem).
+Este serviço **nunca emite tokens** — não há login/`AuthenticationController` aqui. Ele é um resource server puro: valida o JWT emitido pelo OS Service, usando o mesmo segredo simétrico compartilhado (`JwtSettings:Secret`).
 
 ## Mensageria (RabbitMQ/MassTransit)
 
-Ligada: `IniciarDiagnosticoConsumer` e `IniciarExecucaoConsumer` reagem aos comandos
-publicados pelo OS Service, reaproveitando os use cases já existentes (mesma regra de
-negócio dos endpoints REST internos). Como o comando `IniciarExecucao` só carrega o
-`IdOrdemServico` (o OS Service não acompanha os serviços item a item), o consumer busca a
-própria `ExecucaoOrdemServico` e inicia a execução de todos os serviços ainda
-`AguardandoExecucao`. Ao finalizar o diagnóstico ou o último serviço, publica
-`DiagnosticoFinalizado`/`ExecucaoFinalizada` (via novos handlers de domain event
-`PublicarDiagnosticoFinalizadoHandler`/`PublicarExecucaoFinalizadaHandler`). Contratos em
-`Soat.Contracts.Saga` (`src/Application/Messaging/Contracts/SagaContracts.cs`), cópia
-idêntica à dos outros dois serviços (sem pacote NuGet compartilhado — ver plano).
+`IniciarDiagnosticoConsumer` e `IniciarExecucaoConsumer` reagem aos comandos publicados pelo OS Service, reaproveitando os use cases já existentes (mesma regra de negócio dos endpoints REST internos — nenhuma lógica duplicada entre a via HTTP e a via mensageria). Como o comando `IniciarExecucao` só carrega o `IdOrdemServico` (o OS Service não acompanha os serviços item a item), o consumer busca a própria `ExecucaoOrdemServico` e inicia a execução de todos os serviços ainda `AguardandoExecucao` (não existe um método de domínio para iniciar todos de uma vez — o consumer itera e chama `IniciarExecucaoServicoUseCase` por item). Ao finalizar o diagnóstico ou o último serviço, publica `DiagnosticoFinalizado`/`ExecucaoFinalizada` (via `PublicarDiagnosticoFinalizadoHandler`/`PublicarExecucaoFinalizadaHandler`, reagindo a domain events).
 
-**Verificado contra infraestrutura real** (RabbitMQ local, sem mocks): um publisher
-standalone simulando o OS Service publicou `IniciarDiagnostico`, e o consumer efetivamente
-recebeu a mensagem, chamou `IniciarDiagnosticoUseCase` e tentou persistir no MongoDB —
-sem um MongoDB rodando neste ambiente, a chamada expirou após 30s com um erro de conexão
-real do driver (não um erro de desserialização ou de roteamento), confirmando que o
-pipeline RabbitMQ → consumer → use case → gateway está corretamente ligado até a fronteira
-do banco.
+Contratos em `Soat.Contracts.Saga` (`src/Application/Messaging/Contracts/SagaContracts.cs`), cópia idêntica à dos outros dois serviços — mantida por convenção em cada repo em vez de um pacote NuGet compartilhado, para evitar a complexidade de um feed privado nesta fase do projeto (são DTOs puros, marcados com as interfaces `ISagaCommand`/`ISagaEvent` para deixar explícito no próprio tipo se é um comando ou um evento da saga).
 
-## Status / escopo deste PR
+**Verificado contra infraestrutura real** (RabbitMQ local, sem mocks): um publisher standalone simulando o OS Service publicou `IniciarDiagnostico`, e o consumer efetivamente recebeu a mensagem, chamou `IniciarDiagnosticoUseCase` e tentou persistir no MongoDB — sem um MongoDB rodando neste ambiente, a chamada expirou após 30s com um erro de conexão real do driver (não um erro de desserialização ou de roteamento), confirmando que o pipeline RabbitMQ → consumer → use case → gateway está corretamente ligado até a fronteira do banco.
 
-Clean Architecture completa, domínio com a máquina de estados real (não é stub), casos de
-uso, API REST, mensageria RabbitMQ/MassTransit ligada, testes de arquitetura e testes
-unitários do domínio.
+## Banco de dados
 
-**Fora de escopo, propositalmente adiado para follow-ups** (ver `PLANO-FASE-4-MICROSSERVICOS.md`):
-- **Kubernetes** (incluindo o StatefulSet do MongoDB) e **CI/CD**: infraestrutura de deploy fica para as fases de infra do plano.
-- Testes de integração com Testcontainers (Mongo) — os testes deste PR são testes unitários de domínio + arquitetura; não há MongoDB local neste ambiente de scaffold.
-- `RemoverServicoDiagnosticado`/`RemoverProdutoDiagnosticado` existem no agregado mas não têm endpoint/consumer próprio (fora da lista fixa de rotas do plano).
+MongoDB (`soat_execucao`) — instância própria e isolada (nenhum outro serviço acessa este banco diretamente). Em produção, roda auto-hospedado em um `StatefulSet` + `PersistentVolumeClaim` dentro do próprio namespace deste serviço (`k8s/mongodb.yaml`) — não um serviço gerenciado (DocumentDB/Atlas), para não gerar custo adicional na conta AWS Academy usada no desenvolvimento.
 
 ## Rodando localmente
 
@@ -110,13 +99,15 @@ API em `http://localhost:8083`, documentação OpenAPI (Scalar) em `/scalar` (am
 | PATCH | `/api/v1/execucoes/{idOrdemServico}/servicos/{idServico}/iniciar-execucao` | Inicia a execução de um serviço |
 | PATCH | `/api/v1/execucoes/{idOrdemServico}/servicos/{idServico}/finalizar-execucao` | Finaliza a execução de um serviço |
 
-Todos exigem `Authorization: Bearer <jwt>`.
+Todos exigem `Authorization: Bearer <jwt>`. Os passos de diagnóstico/execução também são disparados automaticamente pelos comandos de mensageria (ver "Mensageria" acima) — as rotas REST ficam mantidas para depuração/teste manual.
 
 ## Testes
 
 ```bash
 dotnet test
 ```
+
+Cobre: regras de arquitetura (NetArchTest, `tests/Tests/Camadas`), transições de estado do agregado `ExecucaoOrdemServico`/itens (xUnit + FluentAssertions) e os use cases/consumers da Application layer (Moq).
 
 ## CI/CD
 
@@ -138,3 +129,8 @@ Em `pull_request`, roda só `build-test`. Em `push` para `main`, roda também `d
 ### Proteção da branch `main`
 
 Configuração manual no GitHub (Settings > Branches): exigir PR antes do merge, exigir que o check `Build, Test & Quality Gate` passe, sem push direto.
+
+## Escopo — o que ainda fica de fora deste repositório
+
+- `RemoverServicoDiagnosticado`/`RemoverProdutoDiagnosticado` existem no agregado mas não têm endpoint/consumer próprio (fora da lista fixa de rotas do MVP).
+- Testes de integração com Testcontainers (MongoDB) — os testes hoje são unitários (domínio + Application com Moq) e de arquitetura; não há um ambiente com MongoDB real neste repositório de testes ainda.

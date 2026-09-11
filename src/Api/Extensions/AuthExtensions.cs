@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using Infrastructure.Security.Jwt;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -8,6 +9,8 @@ namespace Api.Extensions;
 // Este serviço nunca emite JWT (não há AuthenticationController/login aqui) — é um
 // resource server puro, validando o token emitido pelo OS Service / Lambda de auth com
 // o mesmo segredo simétrico compartilhado (ADR 0005 do monolito de origem).
+// Registro de infraestrutura, sem lógica de negócio/branching — excluído da cobertura.
+[ExcludeFromCodeCoverage]
 public static class AuthExtensions
 {
     public static IServiceCollection AddJwtAuthentication(

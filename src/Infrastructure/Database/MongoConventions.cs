@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
@@ -8,6 +9,8 @@ namespace Infrastructure.Database;
 // implícita (era o legado do modo "CSharpLegacy") — sem isto, qualquer Guid (inclusive o
 // _id) lança BsonSerializationException ao serializar/desserializar. Registrar uma vez,
 // globalmente, evita anotar [BsonRepresentation] em cada propriedade Guid dos documentos.
+// Bootstrap de infraestrutura sem lógica de negócio — excluído da cobertura.
+[ExcludeFromCodeCoverage]
 public static class MongoConventions
 {
     private static bool _configured;
