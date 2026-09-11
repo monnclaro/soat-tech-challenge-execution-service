@@ -1,0 +1,52 @@
+version: '3.9'
+
+services:
+  api:
+    image: soat-execution-service-api
+    build:
+      context: .
+      dockerfile: src/Api/Dockerfile
+
+    ports:
+      - "8083:8080"
+
+    env_file:
+      - .env
+
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+    networks:
+      - soat-execucao-network
+
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7
+
+    env_file:
+      - .env
+
+    ports:
+      - "27018:27017"
+
+    volumes:
+      - soat_execucao_mongo_data:/data/db
+
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+    networks:
+      - soat-execucao-network
+
+    restart: unless-stopped
+
+volumes:
+  soat_execucao_mongo_data:
+
+networks:
+  soat-execucao-network:
