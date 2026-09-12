@@ -22,6 +22,8 @@ O OS Service é o orquestrador: seu próprio agregado `OrdemServico` guarda o es
 | OS Service → Execução (comando) | `IniciarExecucao` | Inicia a execução de todos os serviços ainda `AguardandoExecucao` (ver "Mensageria" abaixo) |
 | Execução → OS Service (evento) | `ExecucaoFinalizada` | Publicado quando o último serviço termina a execução |
 
+Justificativa completa do desenho da saga (por que a orquestração vive no OS Service, sem um saga state machine separado): [ADR 0001 no repositório do OS Service](https://github.com/monnclaro/soat-tech-challenge-os-service/blob/main/docs/adr/0001-saga-orquestrada-sem-state-machine-separado.md).
+
 ## Por que MongoDB
 
 Esta é a única base não-relacional das 3 (requisito do desafio: pelo menos 1 banco relacional e 1 não-relacional), e o domínio se encaixa bem no modelo de documentos:
