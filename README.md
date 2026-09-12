@@ -103,6 +103,8 @@ API em `http://localhost:8083`, documentação OpenAPI (Scalar) em `/scalar` (am
 
 Todos exigem `Authorization: Bearer <jwt>`. Os passos de diagnóstico/execução também são disparados automaticamente pelos comandos de mensageria (ver "Mensageria" acima) — as rotas REST ficam mantidas para depuração/teste manual.
 
+Especificação OpenAPI (Swagger) exportada em [`docs/openapi.json`](./docs/openapi.json) — importável direto no Postman (File > Import) ou em qualquer ferramenta compatível com OpenAPI 3. Com a API rodando localmente, a versão sempre atualizada também fica disponível em `/openapi/v1.json` (e a UI interativa do Scalar em `/scalar`).
+
 ## Testes
 
 ```bash
