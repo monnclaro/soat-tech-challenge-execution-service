@@ -1,0 +1,75 @@
+version: '3.9'
+
+services:
+  api:
+    image: soat-execution-service-api
+    build:
+      context: .
+      dockerfile: src/Api/Dockerfile
+
+    ports:
+      - "8083:8080"
+
+    env_file:
+      - .env
+
+    depends_on:
+      mongo:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+    networks:
+      - soat-execucao-network
+
+    restart: unless-stopped
+
+  # Para testar a saga completa localmente, aponte RabbitMq__Host deste serviço e do
+  # OS Service/Billing Service para o mesmo broker (rede Docker externa comum, ou um
+  # RabbitMQ único rodando fora do compose de cada serviço).
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+
+    ports:
+      - "5674:5672"
+      - "15674:15672"
+
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+    networks:
+      - soat-execucao-network
+
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7
+
+    env_file:
+      - .env
+
+    ports:
+      - "27018:27017"
+
+    volumes:
+      - soat_execucao_mongo_data:/data/db
+
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+    networks:
+      - soat-execucao-network
+
+    restart: unless-stopped
+
+volumes:
+  soat_execucao_mongo_data:
+
+networks:
+  soat-execucao-network:

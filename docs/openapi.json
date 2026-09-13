@@ -1,0 +1,544 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "SOAT - Execution Service",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8083/"
+    }
+  ],
+  "paths": {
+    "/api/v1/fila": {
+      "get": {
+        "tags": [
+          "Execucoes"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ExecucaoOutput"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/execucoes/{idOrdemServico}": {
+      "get": {
+        "tags": [
+          "Execucoes"
+        ],
+        "parameters": [
+          {
+            "name": "idOrdemServico",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecucaoOutput"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/execucoes/{idOrdemServico}/diagnostico/iniciar": {
+      "patch": {
+        "tags": [
+          "Execucoes"
+        ],
+        "parameters": [
+          {
+            "name": "idOrdemServico",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecucaoOutput"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/execucoes/{idOrdemServico}/diagnostico/finalizar": {
+      "patch": {
+        "tags": [
+          "Execucoes"
+        ],
+        "parameters": [
+          {
+            "name": "idOrdemServico",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinalizarDiagnosticoRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinalizarDiagnosticoRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinalizarDiagnosticoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecucaoOutput"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/execucoes/{idOrdemServico}/servicos/{idServico}/iniciar-execucao": {
+      "patch": {
+        "tags": [
+          "Execucoes"
+        ],
+        "parameters": [
+          {
+            "name": "idOrdemServico",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "idServico",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecucaoOutput"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/execucoes/{idOrdemServico}/servicos/{idServico}/finalizar-execucao": {
+      "patch": {
+        "tags": [
+          "Execucoes"
+        ],
+        "parameters": [
+          {
+            "name": "idOrdemServico",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "idServico",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecucaoOutput"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ExecucaoOutput": {
+        "required": [
+          "idOrdemServico",
+          "status",
+          "dataCriacao",
+          "dataFinalizacaoDiagnostico",
+          "dataInicioExecucao",
+          "dataFinalizacao",
+          "servicos",
+          "produtos"
+        ],
+        "type": "object",
+        "properties": {
+          "idOrdemServico": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "$ref": "#/components/schemas/StatusExecucaoOrdemServico"
+          },
+          "dataCriacao": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dataFinalizacaoDiagnostico": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "dataInicioExecucao": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "dataFinalizacao": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "servicos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ItemServicoOutput"
+            }
+          },
+          "produtos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ItemProdutoOutput"
+            }
+          }
+        }
+      },
+      "FinalizarDiagnosticoRequest": {
+        "required": [
+          "servicos",
+          "produtos"
+        ],
+        "type": "object",
+        "properties": {
+          "servicos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ItemServicoDiagnosticadoRequest"
+            }
+          },
+          "produtos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ItemProdutoDiagnosticadoRequest"
+            }
+          }
+        }
+      },
+      "ItemProdutoDiagnosticadoRequest": {
+        "required": [
+          "idProduto",
+          "nomeProduto",
+          "valorUnitario",
+          "quantidade"
+        ],
+        "type": "object",
+        "properties": {
+          "idProduto": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nomeProduto": {
+            "type": "string"
+          },
+          "valorUnitario": {
+            "type": "number",
+            "format": "double"
+          },
+          "quantidade": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "ItemProdutoOutput": {
+        "required": [
+          "id",
+          "idProduto",
+          "nomeProduto",
+          "valorUnitario",
+          "quantidade",
+          "subtotal"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "idProduto": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nomeProduto": {
+            "type": "string"
+          },
+          "valorUnitario": {
+            "type": "number",
+            "format": "double"
+          },
+          "quantidade": {
+            "type": "number",
+            "format": "double"
+          },
+          "subtotal": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "ItemServicoDiagnosticadoRequest": {
+        "required": [
+          "idServico",
+          "nomeServico",
+          "valor"
+        ],
+        "type": "object",
+        "properties": {
+          "idServico": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nomeServico": {
+            "type": "string"
+          },
+          "valor": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "ItemServicoOutput": {
+        "required": [
+          "id",
+          "idServico",
+          "nomeServico",
+          "valor",
+          "status",
+          "dataInicioExecucao",
+          "dataFinalizacaoExecucao"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "idServico": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nomeServico": {
+            "type": "string"
+          },
+          "valor": {
+            "type": "number",
+            "format": "double"
+          },
+          "status": {
+            "$ref": "#/components/schemas/StatusItemServico"
+          },
+          "dataInicioExecucao": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "dataFinalizacaoExecucao": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "StatusExecucaoOrdemServico": {
+        "type": "integer"
+      },
+      "StatusItemServico": {
+        "type": "integer"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Execucoes"
+    }
+  ]
+}
