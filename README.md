@@ -1,5 +1,9 @@
 # SOAT — Execution Service
 
+[![CI/CD](https://github.com/monnclaro/soat-tech-challenge-execution-service/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/monnclaro/soat-tech-challenge-execution-service/actions/workflows/ci-cd.yml)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=soat-tech-challenge-execution-service&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=soat-tech-challenge-execution-service)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=soat-tech-challenge-execution-service&metric=coverage)](https://sonarcloud.io/summary/new_code?id=soat-tech-challenge-execution-service)
+
 Microsserviço responsável pela **Execução/Produção** dentro da arquitetura de microsserviços da Fase 4 do Tech Challenge (FIAP). Extraído do monolito [`soat-tech-challenge`](https://github.com/monnclaro/soat-tech-challenge), que permanece como referência histórica das Fases 1-3.
 
 ## Responsabilidades
@@ -18,9 +22,11 @@ O OS Service é o orquestrador: seu próprio agregado `OrdemServico` guarda o es
 | Direção | Mensagem | Efeito neste serviço |
 |---|---|---|
 | OS Service → Execução (comando) | `IniciarDiagnostico` | Abre a fila de execução para a OS (`IniciarDiagnosticoUseCase`) |
-| Execução → OS Service (evento) | `DiagnosticoFinalizado` / `DiagnosticoFalhou` | Publicado ao finalizar o registro dos itens diagnosticados |
+| Execução → OS Service (evento) | `DiagnosticoFinalizado` | Publicado ao finalizar o registro dos itens diagnosticados |
+| Execução → OS Service (evento) | `DiagnosticoFalhou` | **Compensação**: publicado por `Cancelar(motivo)` se ainda estiver na fase de diagnóstico (veículo não atendível) |
 | OS Service → Execução (comando) | `IniciarExecucao` | Inicia a execução de todos os serviços ainda `AguardandoExecucao` (ver "Mensageria" abaixo) |
 | Execução → OS Service (evento) | `ExecucaoFinalizada` | Publicado quando o último serviço termina a execução |
+| Execução → OS Service (evento) | `ExecucaoFalhou` | **Compensação**: publicado por `Cancelar(motivo)` se o diagnóstico já tiver sido finalizado (ex.: peça indisponível durante a execução) |
 
 Justificativa completa do desenho da saga (por que a orquestração vive no OS Service, sem um saga state machine separado): [ADR 0001 no repositório do OS Service](https://github.com/monnclaro/soat-tech-challenge-os-service/blob/main/docs/adr/0001-saga-orquestrada-sem-state-machine-separado.md).
 
@@ -48,13 +54,15 @@ src/
 
 Regras de dependência entre camadas garantidas por testes de arquitetura (NetArchTest) em `tests/Tests/Camadas`.
 
+Documentação completa (diagramas de camadas, modelo de domínio, máquinas de estado, sequência de diagnóstico/execução com compensação, mensageria): [docs/architecture.md](./docs/architecture.md).
+
 ### Agregado de domínio
 
 `ExecucaoOrdemServico` é o agregado raiz, chaveado por `IdOrdemServico`. Reúne, adaptadas a um único agregado, duas responsabilidades que viviam separadas no monolito (`soat-tech-challenge`):
 
 - **Edição de diagnóstico** — portada de `OrdemServico.InserirServicos/InserirProdutos/RemoverServico/RemoverProduto/FinalizarDiagnostico`: `AdicionarServicoDiagnosticado`, `AdicionarProdutoDiagnosticado`, `RemoverServicoDiagnosticado`, `RemoverProdutoDiagnosticado` (só permitido enquanto `Status == EmDiagnostico`) e `FinalizarDiagnostico()`.
 - **Execução por item** — portada quase inalterada de `OrdemServicoServico.IniciarExecucao/FinalizarExecucao` (hoje em `Domain/Execucoes/Itens/ItemServico.cs`): `IniciarExecucaoServico(idServico)`/`FinalizarExecucaoServico(idServico)` no agregado delegam para o item e promovem o agregado para `EmExecucao` na primeira chamada e para `Finalizada` quando o último serviço termina.
-- `Cancelar()` é o caminho de compensação da saga (veículo não atendível durante o diagnóstico, ou falha na execução).
+- `Cancelar(motivo)` é o caminho de compensação da saga (veículo não atendível durante o diagnóstico, ou falha na execução) — exposto via `PATCH .../cancelar` e publica `DiagnosticoFalhou`/`ExecucaoFalhou` (via `PublicarExecucaoCanceladaHandler`, reagindo ao domain event `ExecucaoCanceladaDomainEvent`) dependendo da fase em que ocorreu, para o OS Service cancelar a OS.
 
 ### Persistência (MongoDB)
 
@@ -100,18 +108,36 @@ API em `http://localhost:8083`, documentação OpenAPI (Scalar) em `/scalar` (am
 | PATCH | `/api/v1/execucoes/{idOrdemServico}/diagnostico/finalizar` | Registra serviços/produtos identificados e finaliza o diagnóstico |
 | PATCH | `/api/v1/execucoes/{idOrdemServico}/servicos/{idServico}/iniciar-execucao` | Inicia a execução de um serviço |
 | PATCH | `/api/v1/execucoes/{idOrdemServico}/servicos/{idServico}/finalizar-execucao` | Finaliza a execução de um serviço |
+| PATCH | `/api/v1/execucoes/{idOrdemServico}/cancelar` | Cancela a execução (corpo `{ "motivo": "..." }`) — compensação da saga |
 
 Todos exigem `Authorization: Bearer <jwt>`. Os passos de diagnóstico/execução também são disparados automaticamente pelos comandos de mensageria (ver "Mensageria" acima) — as rotas REST ficam mantidas para depuração/teste manual.
 
 Especificação OpenAPI (Swagger) exportada em [`docs/openapi.json`](./docs/openapi.json) — importável direto no Postman (File > Import) ou em qualquer ferramenta compatível com OpenAPI 3. Com a API rodando localmente, a versão sempre atualizada também fica disponível em `/openapi/v1.json` (e a UI interativa do Scalar em `/scalar`).
 
-## Testes
+## Testes e cobertura
 
 ```bash
 dotnet test
 ```
 
-Cobre: regras de arquitetura (NetArchTest, `tests/Tests/Camadas`), transições de estado do agregado `ExecucaoOrdemServico`/itens (xUnit + FluentAssertions) e os use cases/consumers da Application layer (Moq).
+Cobre: regras de arquitetura (NetArchTest, `tests/Tests/Camadas`), transições de estado do agregado `ExecucaoOrdemServico`/itens — incluindo `Cancelar(motivo)` e os dois ramos de compensação (`DiagnosticoFalhou`/`ExecucaoFalhou`) — e os use cases/consumers/presenters da Application/Infrastructure/Api (Moq).
+
+### Evidência de cobertura
+
+**106/106 testes passando**, gerado localmente com Coverlet
+(`dotnet test -p:CollectCoverage=true -p:CoverletOutputFormat=opencover`):
+
+| Módulo | Linha | Branch | Método |
+|---|---|---|---|
+| Api | 96,49% | 100% | 92,85% |
+| Application | 90,1% | 100% | 77,9% |
+| Domain | 97,8% | 93,75% | 96,77% |
+| Infrastructure | 78,91% | 83,33% | 84% |
+| SharedKernel | 100% | 100% | 100% |
+| **Total** | **90,31%** | **94,25%** | **86,28%** |
+
+Cobertura contínua nos badges no topo deste README e no
+[dashboard do SonarCloud](https://sonarcloud.io/summary/new_code?id=soat-tech-challenge-execution-service).
 
 ## CI/CD
 
