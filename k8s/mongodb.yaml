@@ -24,6 +24,10 @@ spec:
         app: mongodb
 
     spec:
+      # Este pod nunca chama a API do Kubernetes — desabilita o automount do token do
+      # service account (reduz a superfície de ataque caso o pod seja comprometido).
+      automountServiceAccountToken: false
+
       containers:
         - name: mongodb
           image: mongo:7
@@ -34,13 +38,18 @@ spec:
             - name: mongodb-data
               mountPath: /data/db
 
+          # ephemeral-storage cobre a camada gravável do container (logs, tmp) — os
+          # dados do MongoDB em si vivem no PVC (volumeClaimTemplates abaixo), fora
+          # desse limite.
           resources:
             requests:
               memory: "192Mi"
               cpu: "100m"
+              ephemeral-storage: "256Mi"
             limits:
               memory: "384Mi"
               cpu: "300m"
+              ephemeral-storage: "512Mi"
 
   volumeClaimTemplates:
     - metadata:

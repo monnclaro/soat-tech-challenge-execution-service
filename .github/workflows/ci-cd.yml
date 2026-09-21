@@ -116,6 +116,11 @@ jobs:
         run: kubectl rollout status statefulset/mongodb -n soat-execucao --timeout=180s
 
       - name: Gerar Secret a partir do SSM Parameter Store (JWT + RabbitMQ)
+        # NEW_RELIC_LICENSE_KEY via env (não interpolado direto no script) — evita
+        # expandir o secret como texto no shell, onde um valor malicioso/inesperado
+        # poderia ser interpretado como comando (ver regra do SonarCloud).
+        env:
+          NEW_RELIC_LICENSE_KEY: ${{ secrets.NEW_RELIC_LICENSE_KEY }}
         run: |
           JWT_SECRET=$(aws ssm get-parameter --name "/soat/${ENVIRONMENT}/jwt/secret" --with-decryption --query Parameter.Value --output text)
           RABBITMQ_HOST=$(aws ssm get-parameter --name "/soat/${ENVIRONMENT}/rabbitmq/host" --query Parameter.Value --output text)
@@ -129,7 +134,7 @@ jobs:
             --from-literal=RabbitMq__VirtualHost="/" \
             --from-literal=RabbitMq__Username="$RABBITMQ_USER" \
             --from-literal=RabbitMq__Password="$RABBITMQ_PASSWORD" \
-            --from-literal=NEW_RELIC_LICENSE_KEY="${{ secrets.NEW_RELIC_LICENSE_KEY }}" \
+            --from-literal=NEW_RELIC_LICENSE_KEY="$NEW_RELIC_LICENSE_KEY" \
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Aplicar manifests
