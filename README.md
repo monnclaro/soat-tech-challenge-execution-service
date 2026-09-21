@@ -1,8 +1,7 @@
 # SOAT — Execution Service
 
-[![CI/CD](https://github.com/monnclaro/soat-tech-challenge-execution-service/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/monnclaro/soat-tech-challenge-execution-service/actions/workflows/ci-cd.yml)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=soat-tech-challenge-execution-service&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=soat-tech-challenge-execution-service)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=soat-tech-challenge-execution-service&metric=coverage)](https://sonarcloud.io/summary/new_code?id=soat-tech-challenge-execution-service)
+[![Quality gate status](https://sonarcloud.io/api/project_badges/measure?project=soat-tech-challenge-execution-service&metric=alert_status&token=70f4a02ca386c0bb2ca42db64130e18906b5698a)](https://sonarcloud.io/summary/new_code?id=soat-tech-challenge-execution-service)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=soat-tech-challenge-execution-service&metric=coverage&token=70f4a02ca386c0bb2ca42db64130e18906b5698a)](https://sonarcloud.io/summary/new_code?id=soat-tech-challenge-execution-service)
 
 Microsserviço responsável pela **Execução/Produção** dentro da arquitetura de microsserviços da Fase 4 do Tech Challenge (FIAP). Extraído do monolito [`soat-tech-challenge`](https://github.com/monnclaro/soat-tech-challenge), que permanece como referência histórica das Fases 1-3.
 
