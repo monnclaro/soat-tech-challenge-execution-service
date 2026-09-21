@@ -17,6 +17,7 @@ public class ExecucaoOrdemServicoDocument
     public DateTime? DataFinalizacaoDiagnostico { get; set; }
     public DateTime? DataInicioExecucao { get; set; }
     public DateTime? DataFinalizacao { get; set; }
+    public string? MotivoCancelamento { get; set; }
 
     public List<ItemServicoDocument> Servicos { get; set; } = [];
     public List<ItemProdutoDocument> Produtos { get; set; } = [];

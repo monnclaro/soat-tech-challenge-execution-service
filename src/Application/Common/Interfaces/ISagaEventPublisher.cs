@@ -15,4 +15,6 @@ public interface ISagaEventPublisher
     Task PublicarDiagnosticoFalhou(Guid idOrdemServico, string motivo, CancellationToken ct = default);
 
     Task PublicarExecucaoFinalizada(Guid idOrdemServico, CancellationToken ct = default);
+
+    Task PublicarExecucaoFalhou(Guid idOrdemServico, string motivo, CancellationToken ct = default);
 }

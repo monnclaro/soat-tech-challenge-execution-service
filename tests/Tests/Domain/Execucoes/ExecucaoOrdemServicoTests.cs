@@ -250,14 +250,33 @@ public class ExecucaoOrdemServicoTests
     }
 
     [Fact]
-    public void Cancelar_QuandoEmDiagnostico_DeveTransicionarParaCancelada()
+    public void Cancelar_QuandoEmDiagnostico_DeveTransicionarParaCanceladaEPublicarComDuranteDiagnosticoVerdadeiro()
     {
         var execucao = CriarEmDiagnostico();
 
-        execucao.Cancelar();
+        execucao.Cancelar("Veículo não atendível");
 
         execucao.Status.Should().Be(StatusExecucaoOrdemServico.Cancelada);
         execucao.DataFinalizacao.Should().NotBeNull();
+        execucao.MotivoCancelamento.Should().Be("Veículo não atendível");
+        execucao.DomainEvents.Should().ContainSingle(e => e is ExecucaoCanceladaDomainEvent)
+            .Which.Should().BeOfType<ExecucaoCanceladaDomainEvent>()
+            .Which.DuranteDiagnostico.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Cancelar_QuandoEmExecucao_DevePublicarComDuranteDiagnosticoFalso()
+    {
+        var execucao = CriarComDiagnosticoFinalizado();
+        var idServico = execucao.Servicos[0].IdServico;
+        execucao.IniciarExecucaoServico(idServico);
+
+        execucao.Cancelar("Peça indisponível");
+
+        execucao.Status.Should().Be(StatusExecucaoOrdemServico.Cancelada);
+        execucao.DomainEvents.Should().ContainSingle(e => e is ExecucaoCanceladaDomainEvent)
+            .Which.Should().BeOfType<ExecucaoCanceladaDomainEvent>()
+            .Which.DuranteDiagnostico.Should().BeFalse();
     }
 
     [Fact]
@@ -268,7 +287,7 @@ public class ExecucaoOrdemServicoTests
         execucao.IniciarExecucaoServico(idServico);
         execucao.FinalizarExecucaoServico(idServico);
 
-        var acao = execucao.Cancelar;
+        var acao = () => execucao.Cancelar("Motivo qualquer");
 
         acao.Should().Throw<DomainException>();
     }
@@ -277,9 +296,9 @@ public class ExecucaoOrdemServicoTests
     public void Cancelar_QuandoJaCancelada_DeveLancarDomainException()
     {
         var execucao = CriarEmDiagnostico();
-        execucao.Cancelar();
+        execucao.Cancelar("Primeiro cancelamento");
 
-        var acao = execucao.Cancelar;
+        var acao = () => execucao.Cancelar("Segundo cancelamento");
 
         acao.Should().Throw<DomainException>();
     }

@@ -24,6 +24,7 @@ public class ExecucaoOrdemServico : Entity
     public DateTime? DataFinalizacaoDiagnostico { get; private set; }
     public DateTime? DataInicioExecucao { get; private set; }
     public DateTime? DataFinalizacao { get; private set; }
+    public string? MotivoCancelamento { get; private set; }
 
     private readonly List<ItemServico> _servicos = [];
     private readonly List<ItemProduto> _produtos = [];
@@ -158,16 +159,23 @@ public class ExecucaoOrdemServico : Entity
     }
 
     // Caminho de compensação da saga: veículo não atendível (durante o diagnóstico) ou
-    // falha na execução (ex.: peça indisponível) — ver seção 2 do plano de migração.
-    public void Cancelar()
+    // falha na execução (ex.: peça indisponível). Publica DiagnosticoFalhou ou
+    // ExecucaoFalhou (via PublicarExecucaoCanceladaHandler) dependendo da fase em que
+    // o cancelamento ocorreu, para o OS Service saber o motivo e compensar a saga.
+    public void Cancelar(string motivo)
     {
         if (Status is StatusExecucaoOrdemServico.Finalizada or StatusExecucaoOrdemServico.Cancelada)
         {
             throw new DomainException("Não é possível cancelar uma execução já finalizada ou cancelada.");
         }
 
+        var duranteDiagnostico = Status is StatusExecucaoOrdemServico.AguardandoDiagnostico or StatusExecucaoOrdemServico.EmDiagnostico;
+
         Status = StatusExecucaoOrdemServico.Cancelada;
+        MotivoCancelamento = motivo;
         DataFinalizacao = DateTime.UtcNow;
+
+        Raise(new ExecucaoCanceladaDomainEvent(IdOrdemServico, motivo, duranteDiagnostico));
     }
 
     private void GarantirEmDiagnostico()
@@ -187,6 +195,7 @@ public class ExecucaoOrdemServico : Entity
         DateTime? dataFinalizacaoDiagnostico,
         DateTime? dataInicioExecucao,
         DateTime? dataFinalizacao,
+        string? motivoCancelamento,
         List<ItemServico> servicos,
         List<ItemProduto> produtos)
     {
@@ -198,6 +207,7 @@ public class ExecucaoOrdemServico : Entity
             DataFinalizacaoDiagnostico = dataFinalizacaoDiagnostico,
             DataInicioExecucao = dataInicioExecucao,
             DataFinalizacao = dataFinalizacao,
+            MotivoCancelamento = motivoCancelamento,
         };
 
         execucao._servicos.AddRange(servicos);

@@ -1,5 +1,6 @@
 using Application.Execucoes.UseCases.BuscarFila;
 using Application.Execucoes.UseCases.BuscarPorOrdemServico;
+using Application.Execucoes.UseCases.Cancelar;
 using Application.Execucoes.UseCases.FinalizarDiagnostico;
 using Application.Execucoes.UseCases.FinalizarExecucaoServico;
 using Application.Execucoes.UseCases.IniciarDiagnostico;
@@ -16,6 +17,7 @@ public class ExecucaoController : IScoped
     private readonly FinalizarDiagnosticoUseCase _finalizarDiagnostico;
     private readonly IniciarExecucaoServicoUseCase _iniciarExecucaoServico;
     private readonly FinalizarExecucaoServicoUseCase _finalizarExecucaoServico;
+    private readonly CancelarUseCase _cancelar;
 
     public ExecucaoController(
         BuscarFilaUseCase buscarFila,
@@ -23,7 +25,8 @@ public class ExecucaoController : IScoped
         IniciarDiagnosticoUseCase iniciarDiagnostico,
         FinalizarDiagnosticoUseCase finalizarDiagnostico,
         IniciarExecucaoServicoUseCase iniciarExecucaoServico,
-        FinalizarExecucaoServicoUseCase finalizarExecucaoServico)
+        FinalizarExecucaoServicoUseCase finalizarExecucaoServico,
+        CancelarUseCase cancelar)
     {
         _buscarFila = buscarFila;
         _buscarPorOrdemServico = buscarPorOrdemServico;
@@ -31,6 +34,7 @@ public class ExecucaoController : IScoped
         _finalizarDiagnostico = finalizarDiagnostico;
         _iniciarExecucaoServico = iniciarExecucaoServico;
         _finalizarExecucaoServico = finalizarExecucaoServico;
+        _cancelar = cancelar;
     }
 
     public async Task BuscarFila(BuscarFilaInput input, CancellationToken ct = default)
@@ -50,4 +54,7 @@ public class ExecucaoController : IScoped
 
     public async Task FinalizarExecucaoServico(FinalizarExecucaoServicoInput input, CancellationToken ct = default)
         => await _finalizarExecucaoServico.Execute(input, ct);
+
+    public async Task Cancelar(CancelarInput input, CancellationToken ct = default)
+        => await _cancelar.Execute(input, ct);
 }

@@ -2,6 +2,7 @@ using Application.Execucoes.Controllers;
 using Application.Execucoes.UseCases;
 using Application.Execucoes.UseCases.BuscarFila;
 using Application.Execucoes.UseCases.BuscarPorOrdemServico;
+using Application.Execucoes.UseCases.Cancelar;
 using Application.Execucoes.UseCases.FinalizarDiagnostico;
 using Application.Execucoes.UseCases.FinalizarExecucaoServico;
 using Application.Execucoes.UseCases.IniciarDiagnostico;
@@ -27,13 +28,15 @@ public class ExecucaoControllerTests
         Mock<IIniciarDiagnosticoOutputPort>? iniciarDiagnosticoOutput = null,
         Mock<IFinalizarDiagnosticoOutputPort>? finalizarDiagnosticoOutput = null,
         Mock<IIniciarExecucaoServicoOutputPort>? iniciarExecucaoServicoOutput = null,
-        Mock<IFinalizarExecucaoServicoOutputPort>? finalizarExecucaoServicoOutput = null) => new(
+        Mock<IFinalizarExecucaoServicoOutputPort>? finalizarExecucaoServicoOutput = null,
+        Mock<ICancelarOutputPort>? cancelarOutput = null) => new(
         new BuscarFilaUseCase(_gateway.Object, (buscarFilaOutput ?? new Mock<IBuscarFilaOutputPort>()).Object),
         new BuscarPorOrdemServicoUseCase(_gateway.Object, (buscarPorOrdemServicoOutput ?? new Mock<IBuscarPorOrdemServicoOutputPort>()).Object),
         new IniciarDiagnosticoUseCase(_gateway.Object, (iniciarDiagnosticoOutput ?? new Mock<IIniciarDiagnosticoOutputPort>()).Object),
         new FinalizarDiagnosticoUseCase(_gateway.Object, (finalizarDiagnosticoOutput ?? new Mock<IFinalizarDiagnosticoOutputPort>()).Object),
         new IniciarExecucaoServicoUseCase(_gateway.Object, (iniciarExecucaoServicoOutput ?? new Mock<IIniciarExecucaoServicoOutputPort>()).Object),
-        new FinalizarExecucaoServicoUseCase(_gateway.Object, (finalizarExecucaoServicoOutput ?? new Mock<IFinalizarExecucaoServicoOutputPort>()).Object));
+        new FinalizarExecucaoServicoUseCase(_gateway.Object, (finalizarExecucaoServicoOutput ?? new Mock<IFinalizarExecucaoServicoOutputPort>()).Object),
+        new CancelarUseCase(_gateway.Object, (cancelarOutput ?? new Mock<ICancelarOutputPort>()).Object));
 
     [Fact]
     public async Task BuscarFila_DeveDelegarParaUseCaseENotificarOutputPort()
@@ -104,6 +107,18 @@ public class ExecucaoControllerTests
         var controller = CriarController(finalizarExecucaoServicoOutput: outputPort);
 
         await controller.FinalizarExecucaoServico(new FinalizarExecucaoServicoInput(IdOrdemServico, Guid.NewGuid()));
+
+        outputPort.Verify(o => o.NaoEncontrado(), Times.Once);
+    }
+
+    [Fact]
+    public async Task Cancelar_DeveDelegarParaUseCaseENotificarNaoEncontrado()
+    {
+        var outputPort = new Mock<ICancelarOutputPort>();
+        _gateway.Setup(g => g.BuscarPorIdOrdemServico(IdOrdemServico, It.IsAny<CancellationToken>())).ReturnsAsync((ExecucaoOrdemServico?)null);
+        var controller = CriarController(cancelarOutput: outputPort);
+
+        await controller.Cancelar(new CancelarInput(IdOrdemServico, "Peça indisponível"));
 
         outputPort.Verify(o => o.NaoEncontrado(), Times.Once);
     }

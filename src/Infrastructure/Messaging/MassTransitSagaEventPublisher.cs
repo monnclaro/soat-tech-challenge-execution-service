@@ -25,4 +25,7 @@ public class MassTransitSagaEventPublisher : ISagaEventPublisher
 
     public Task PublicarExecucaoFinalizada(Guid idOrdemServico, CancellationToken ct = default) =>
         _publishEndpoint.Publish(new ExecucaoFinalizada(idOrdemServico), ct);
+
+    public Task PublicarExecucaoFalhou(Guid idOrdemServico, string motivo, CancellationToken ct = default) =>
+        _publishEndpoint.Publish(new ExecucaoFalhou(idOrdemServico, motivo), ct);
 }

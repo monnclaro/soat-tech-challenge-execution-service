@@ -14,6 +14,7 @@ internal static class ExecucaoOrdemServicoMapper
         DataFinalizacaoDiagnostico = entity.DataFinalizacaoDiagnostico,
         DataInicioExecucao = entity.DataInicioExecucao,
         DataFinalizacao = entity.DataFinalizacao,
+        MotivoCancelamento = entity.MotivoCancelamento,
         Servicos = [.. entity.Servicos.Select(s => new ItemServicoDocument
         {
             Id = s.Id,
@@ -42,6 +43,7 @@ internal static class ExecucaoOrdemServicoMapper
             document.DataFinalizacaoDiagnostico,
             document.DataInicioExecucao,
             document.DataFinalizacao,
+            document.MotivoCancelamento,
             [.. document.Servicos.Select(s => ItemServico.Reidratar(
                 s.Id, s.IdServico, s.NomeServico, s.Valor, s.Status, s.DataInicioExecucao, s.DataFinalizacaoExecucao))],
             [.. document.Produtos.Select(p => ItemProduto.Reidratar(

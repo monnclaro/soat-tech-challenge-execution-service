@@ -120,4 +120,24 @@ public class PresentersTests
 
         presenter.Result.Should().BeOfType<NotFoundResult>();
     }
+
+    [Fact]
+    public void CancelarPresenter_Ok_DeveRetornarOkObjectResultComOOutput()
+    {
+        var presenter = new CancelarPresenter();
+
+        presenter.Ok(Output);
+
+        presenter.Result.Should().BeOfType<OkObjectResult>().Which.Value.Should().Be(Output);
+    }
+
+    [Fact]
+    public void CancelarPresenter_NaoEncontrado_DeveRetornarNotFoundResult()
+    {
+        var presenter = new CancelarPresenter();
+
+        presenter.NaoEncontrado();
+
+        presenter.Result.Should().BeOfType<NotFoundResult>();
+    }
 }

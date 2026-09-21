@@ -82,4 +82,19 @@ public class ExecucaoOrdemServicoMapperTests
         documento.Servicos.Should().BeEmpty();
         documento.Produtos.Should().BeEmpty();
     }
+
+    [Fact]
+    public void ToDocumentEToDomain_ComExecucaoCancelada_DevePreservarOMotivoDeCancelamento()
+    {
+        var execucao = ExecucaoOrdemServico.Abrir(Guid.NewGuid());
+        execucao.IniciarDiagnostico();
+        execucao.Cancelar("Veículo não atendível");
+
+        var documento = ExecucaoOrdemServicoMapper.ToDocument(execucao);
+        documento.MotivoCancelamento.Should().Be("Veículo não atendível");
+
+        var execucaoReidratada = ExecucaoOrdemServicoMapper.ToDomain(documento);
+        execucaoReidratada.Status.Should().Be(StatusExecucaoOrdemServico.Cancelada);
+        execucaoReidratada.MotivoCancelamento.Should().Be("Veículo não atendível");
+    }
 }

@@ -5,6 +5,7 @@ using Application.Execucoes.Controllers;
 using Application.Execucoes.UseCases;
 using Application.Execucoes.UseCases.BuscarFila;
 using Application.Execucoes.UseCases.BuscarPorOrdemServico;
+using Application.Execucoes.UseCases.Cancelar;
 using Application.Execucoes.UseCases.FinalizarDiagnostico;
 using Application.Execucoes.UseCases.FinalizarExecucaoServico;
 using Application.Execucoes.UseCases.IniciarDiagnostico;
@@ -34,6 +35,7 @@ public class ExecucoesController : ControllerBase
     private readonly FinalizarDiagnosticoPresenter _finalizarDiagnosticoPresenter;
     private readonly IniciarExecucaoServicoPresenter _iniciarExecucaoServicoPresenter;
     private readonly FinalizarExecucaoServicoPresenter _finalizarExecucaoServicoPresenter;
+    private readonly CancelarPresenter _cancelarPresenter;
 
     public ExecucoesController(
         ExecucaoController controller,
@@ -42,7 +44,8 @@ public class ExecucoesController : ControllerBase
         IniciarDiagnosticoPresenter iniciarDiagnosticoPresenter,
         FinalizarDiagnosticoPresenter finalizarDiagnosticoPresenter,
         IniciarExecucaoServicoPresenter iniciarExecucaoServicoPresenter,
-        FinalizarExecucaoServicoPresenter finalizarExecucaoServicoPresenter)
+        FinalizarExecucaoServicoPresenter finalizarExecucaoServicoPresenter,
+        CancelarPresenter cancelarPresenter)
     {
         _controller = controller;
         _buscarFilaPresenter = buscarFilaPresenter;
@@ -51,6 +54,7 @@ public class ExecucoesController : ControllerBase
         _finalizarDiagnosticoPresenter = finalizarDiagnosticoPresenter;
         _iniciarExecucaoServicoPresenter = iniciarExecucaoServicoPresenter;
         _finalizarExecucaoServicoPresenter = finalizarExecucaoServicoPresenter;
+        _cancelarPresenter = cancelarPresenter;
     }
 
     [HttpGet("fila")]
@@ -121,5 +125,18 @@ public class ExecucoesController : ControllerBase
     {
         await _controller.FinalizarExecucaoServico(new FinalizarExecucaoServicoInput(idOrdemServico, idServico), ct);
         return _finalizarExecucaoServicoPresenter.Result!;
+    }
+
+    [HttpPatch("execucoes/{idOrdemServico:guid}/cancelar")]
+    [ProducesResponseType(typeof(ExecucaoOutput), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Cancelar(
+        [FromRoute] Guid idOrdemServico,
+        [FromBody] CancelarRequest request,
+        CancellationToken ct)
+    {
+        await _controller.Cancelar(new CancelarInput(idOrdemServico, request.Motivo), ct);
+        return _cancelarPresenter.Result!;
     }
 }
