@@ -35,9 +35,8 @@ public class ExecucaoOrdemServico : Entity
     private ExecucaoOrdemServico() { }
 
     // Ponto de entrada da fila de execução para uma OS. Corresponde ao comando
-    // IniciarDiagnostico publicado pelo OS Service quando uma OS é criada — hoje
-    // exposto via REST (PATCH .../diagnostico/iniciar), consumido por mensageria em
-    // um follow-up PR.
+    // IniciarDiagnostico publicado pelo OS Service quando uma OS é criada,
+    // consumido via RabbitMQ/MassTransit (IniciarDiagnosticoConsumer).
     public static ExecucaoOrdemServico Abrir(Guid idOrdemServico)
     {
         if (idOrdemServico == Guid.Empty)
@@ -61,6 +60,8 @@ public class ExecucaoOrdemServico : Entity
         }
 
         Status = StatusExecucaoOrdemServico.EmDiagnostico;
+
+        Raise(new DiagnosticoIniciadoDomainEvent(IdOrdemServico));
     }
 
     public void AdicionarServicoDiagnosticado(Guid idServico, string nomeServico, decimal valor)

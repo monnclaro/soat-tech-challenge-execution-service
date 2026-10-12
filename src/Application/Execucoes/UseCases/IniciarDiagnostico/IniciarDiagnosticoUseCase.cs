@@ -4,9 +4,10 @@ using Domain.Execucoes.Gateways;
 
 namespace Application.Execucoes.UseCases.IniciarDiagnostico;
 
-// Em produção, este caso de uso seria disparado pelo comando IniciarDiagnostico
-// publicado pelo OS Service ao criar uma OS (consumer de mensageria — não implementado
-// ainda). Por ora é exposto via REST (PATCH /diagnostico/iniciar) com o mesmo efeito.
+// Disparado pelo comando IniciarDiagnostico publicado pelo OS Service ao criar
+// uma OS (IniciarDiagnosticoConsumer). Ao abrir a execução, o agregado levanta
+// DiagnosticoIniciadoDomainEvent, que confirma de volta pro OS Service avançar
+// a OS para EmDiagnostico — sem essa confirmação, a OS fica presa em Recebida.
 public class IniciarDiagnosticoUseCase : IUseCase
 {
     private readonly IExecucaoOrdemServicoGateway _gateway;

@@ -13,6 +13,9 @@ public class MassTransitSagaEventPublisher : ISagaEventPublisher
         _publishEndpoint = publishEndpoint;
     }
 
+    public Task PublicarDiagnosticoIniciado(Guid idOrdemServico, CancellationToken ct = default) =>
+        _publishEndpoint.Publish(new DiagnosticoIniciado(idOrdemServico), ct);
+
     public Task PublicarDiagnosticoFinalizado(
         Guid idOrdemServico,
         IReadOnlyList<ItemServicoDiagnosticado> servicos,

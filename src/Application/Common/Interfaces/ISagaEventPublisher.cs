@@ -6,6 +6,8 @@ namespace Application.Common.Interfaces;
 // este contrato; a implementação real mora em Infrastructure.Messaging).
 public interface ISagaEventPublisher
 {
+    Task PublicarDiagnosticoIniciado(Guid idOrdemServico, CancellationToken ct = default);
+
     Task PublicarDiagnosticoFinalizado(
         Guid idOrdemServico,
         IReadOnlyList<ItemServicoDiagnosticado> servicos,
