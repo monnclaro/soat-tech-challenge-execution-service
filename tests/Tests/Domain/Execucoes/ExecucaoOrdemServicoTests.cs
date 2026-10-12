@@ -61,6 +61,7 @@ public class ExecucaoOrdemServicoTests
         execucao.IniciarDiagnostico();
 
         execucao.Status.Should().Be(StatusExecucaoOrdemServico.EmDiagnostico);
+        execucao.DomainEvents.Should().ContainSingle(e => e is DiagnosticoIniciadoDomainEvent);
     }
 
     [Fact]

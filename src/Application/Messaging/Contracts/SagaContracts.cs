@@ -50,6 +50,12 @@ public record GerarOrcamento(
 
 #region Eventos — Execução Service -> OS Service
 
+// Confirma que a fila de execução recebeu o comando IniciarDiagnostico e abriu
+// a execução de verdade — só então a OS passa para EmDiagnostico no OS Service.
+// Evita que a OS "otimisticamente" avance de status sem o Execução Service ter
+// confirmado nada (mesmo padrão reativo dos demais eventos desta região).
+public record DiagnosticoIniciado(Guid IdOrdemServico) : ISagaEvent;
+
 public record DiagnosticoFinalizado(
     Guid IdOrdemServico,
     IReadOnlyList<ItemServicoDiagnosticado> Servicos,
