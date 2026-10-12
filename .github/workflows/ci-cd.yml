@@ -109,9 +109,9 @@ jobs:
       - name: Criar namespace
         run: kubectl apply -f k8s/namespace.yaml
 
-      # MongoDB auto-hospedado (StatefulSet+PVC) vive neste mesmo repo/namespace — sem
+      # MongoDB auto-hospedado (StatefulSet) vive neste mesmo repo/namespace — sem
       # SSM/RDS para ele, é gerenciado como qualquer outro objeto k8s do serviço.
-      - name: Aplicar MongoDB (StatefulSet + PVC + Service headless)
+      - name: Aplicar MongoDB (StatefulSet + Service headless)
         run: kubectl apply -f k8s/mongodb.yaml
 
       - name: Aguardar MongoDB ficar pronto
