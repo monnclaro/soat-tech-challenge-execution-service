@@ -1,7 +1,12 @@
-# MongoDB auto-hospedado (StatefulSet + PVC), não um serviço gerenciado — evita custo
+# MongoDB auto-hospedado (StatefulSet), não um serviço gerenciado — evita custo
 # adicional na conta AWS Academy (sem DocumentDB/Atlas). 1 réplica só: é o banco NoSQL
 # de 1 único microsserviço, sem requisito de alta disponibilidade neste projeto
 # acadêmico.
+#
+# Disco efêmero (emptyDir), não PVC: o cluster está no k8s 1.31, que removeu o
+# provisionamento in-tree de EBS (precisaria do addon EBS CSI Driver, não
+# instalado) — um PVC aqui ficaria Pending pra sempre e o pod nunca subiria.
+# Dados se perdem se o pod reiniciar; aceitável para este projeto acadêmico.
 
 apiVersion: apps/v1
 kind: StatefulSet
@@ -38,27 +43,22 @@ spec:
             - name: mongodb-data
               mountPath: /data/db
 
-          # ephemeral-storage cobre a camada gravável do container (logs, tmp) — os
-          # dados do MongoDB em si vivem no PVC (volumeClaimTemplates abaixo), fora
-          # desse limite.
+          # ephemeral-storage agora cobre também os dados do Mongo (emptyDir,
+          # não PVC — ver comentário no topo do arquivo), por isso o limite é
+          # bem maior que antes.
           resources:
             requests:
               memory: "192Mi"
               cpu: "100m"
-              ephemeral-storage: "256Mi"
+              ephemeral-storage: "1200Mi"
             limits:
               memory: "384Mi"
               cpu: "300m"
-              ephemeral-storage: "512Mi"
+              ephemeral-storage: "1536Mi"
 
-  volumeClaimTemplates:
-    - metadata:
-        name: mongodb-data
-      spec:
-        accessModes: ["ReadWriteOnce"]
-        resources:
-          requests:
-            storage: 1Gi
+      volumes:
+        - name: mongodb-data
+          emptyDir: {}
 
 ---
 apiVersion: v1

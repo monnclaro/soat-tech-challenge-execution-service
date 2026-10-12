@@ -86,7 +86,7 @@ Contratos em `Soat.Contracts.Saga` (`src/Application/Messaging/Contracts/SagaCon
 
 ## Banco de dados
 
-MongoDB (`soat_execucao`) — instância própria e isolada (nenhum outro serviço acessa este banco diretamente). Em produção, roda auto-hospedado em um `StatefulSet` + `PersistentVolumeClaim` dentro do próprio namespace deste serviço (`k8s/mongodb.yaml`) — não um serviço gerenciado (DocumentDB/Atlas), para não gerar custo adicional na conta AWS Academy usada no desenvolvimento.
+MongoDB (`soat_execucao`) — instância própria e isolada (nenhum outro serviço acessa este banco diretamente). Em produção, roda auto-hospedado em um `StatefulSet` com disco efêmero (`emptyDir`, não `PersistentVolumeClaim` — o cluster não tem o addon EBS CSI Driver) dentro do próprio namespace deste serviço (`k8s/mongodb.yaml`) — não um serviço gerenciado (DocumentDB/Atlas), para não gerar custo adicional na conta AWS Academy usada no desenvolvimento. Dados se perdem se o pod reiniciar.
 
 ## Rodando localmente
 
@@ -145,7 +145,7 @@ Cobertura contínua nos badges no topo deste README e no
 1. **Gate de cobertura (80%)** — `dotnet test` com Coverlet (`/p:Threshold=80 /p:ThresholdType=line`), falha o job se ficar abaixo.
 2. **Quality Gate do SonarCloud** — `dotnet-sonarscanner begin/end` em volta do build, consumindo o relatório OpenCover do Coverlet.
 
-Em `pull_request`, roda só `build-test`. Em `push` para `main`, roda também `deploy`: aplica o MongoDB (StatefulSet + PVC + Service headless, auto-hospedado — sem custo de serviço gerenciado adicional), aguarda ele ficar pronto, build/push da imagem no ECR e `kubectl apply` dos manifests da API em `k8s/` (namespace `soat-execucao`, NodePort `30083`).
+Em `pull_request`, roda só `build-test`. Em `push` para `main`, roda também `deploy`: aplica o MongoDB (StatefulSet + Service headless, auto-hospedado — sem custo de serviço gerenciado adicional), aguarda ele ficar pronto, build/push da imagem no ECR e `kubectl apply` dos manifests da API em `k8s/` (namespace `soat-execucao`, NodePort `30083`).
 
 ### Secrets necessários no repositório GitHub
 
