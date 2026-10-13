@@ -192,30 +192,21 @@ public class ExecucaoOrdemServico : Entity
 
     // Usado exclusivamente pelo mapper de persistência (Infrastructure) para reconstruir
     // o agregado a partir do documento MongoDB, sem reexecutar as regras de criação.
-    public static ExecucaoOrdemServico Reidratar(
-        Guid idOrdemServico,
-        StatusExecucaoOrdemServico status,
-        DateTime dataCriacao,
-        DateTime? dataFinalizacaoDiagnostico,
-        DateTime? dataInicioExecucao,
-        DateTime? dataFinalizacao,
-        string? motivoCancelamento,
-        List<ItemServico> servicos,
-        List<ItemProduto> produtos)
+    public static ExecucaoOrdemServico Reidratar(ExecucaoOrdemServicoSnapshot snapshot)
     {
         var execucao = new ExecucaoOrdemServico
         {
-            IdOrdemServico = idOrdemServico,
-            Status = status,
-            DataCriacao = dataCriacao,
-            DataFinalizacaoDiagnostico = dataFinalizacaoDiagnostico,
-            DataInicioExecucao = dataInicioExecucao,
-            DataFinalizacao = dataFinalizacao,
-            MotivoCancelamento = motivoCancelamento,
+            IdOrdemServico = snapshot.IdOrdemServico,
+            Status = snapshot.Status,
+            DataCriacao = snapshot.DataCriacao,
+            DataFinalizacaoDiagnostico = snapshot.DataFinalizacaoDiagnostico,
+            DataInicioExecucao = snapshot.DataInicioExecucao,
+            DataFinalizacao = snapshot.DataFinalizacao,
+            MotivoCancelamento = snapshot.MotivoCancelamento,
         };
 
-        execucao._servicos.AddRange(servicos);
-        execucao._produtos.AddRange(produtos);
+        execucao._servicos.AddRange(snapshot.Servicos);
+        execucao._produtos.AddRange(snapshot.Produtos);
 
         return execucao;
     }
