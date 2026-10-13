@@ -27,6 +27,16 @@ public class MassTransitSagaEventPublisherTests
     }
 
     [Fact]
+    public async Task PublicarExecucaoIniciada_DevePublicarEventoComIdOrdemServico()
+    {
+        await _publisher.PublicarExecucaoIniciada(IdOrdemServico);
+
+        _publishEndpoint.Verify(p => p.Publish(
+            It.Is<ExecucaoIniciada>(e => e.IdOrdemServico == IdOrdemServico),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public async Task PublicarDiagnosticoFinalizado_DevePublicarEventoComOsMesmosDados()
     {
         var servicos = new List<ItemServicoDiagnosticado> { new(Guid.NewGuid(), "Troca de óleo", 100m) };

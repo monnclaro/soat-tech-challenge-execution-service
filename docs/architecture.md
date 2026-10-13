@@ -126,8 +126,9 @@ sequenceDiagram
         Exec-->>OS: DiagnosticoFalhou (evento)
     end
 
-    OS-->>Exec: IniciarExecucao (comando, só IdOrdemServico)
-    Note over Exec: Consumer busca a própria ExecucaoOrdemServico e chama<br/>IniciarExecucaoServico() uma vez por item AguardandoExecucao
+    Note over Exec: Ação manual, item a item (PATCH .../servicos/{id}/iniciar-execucao)<br/>— nunca disparado automaticamente pela OS ao aprovar o pagamento
+    Exec->>Exec: IniciarExecucaoServico() no 1º item → EmExecucao
+    Exec-->>OS: ExecucaoIniciada (evento)
 
     alt Todos os serviços concluídos
         Exec->>Exec: FinalizarExecucaoServico() no último item → Finalizada
@@ -141,14 +142,16 @@ sequenceDiagram
 
 ## Mensageria — comandos e consumers
 
-| Mensagem | Tipo | Direção | Consumer/Handler |
-|---|---|---|---|
-| `IniciarExecucao` | Comando | OS → Execução | `IniciarExecucaoConsumer` (itera os itens `AguardandoExecucao`) |
-| `DiagnosticoIniciado` | Evento | Execução → OS | — (publicado ao abrir a fila via ação manual, não comando) |
-| `DiagnosticoFinalizado` | Evento | Execução → OS | — |
-| `DiagnosticoFalhou` | Evento (compensação) | Execução → OS | — |
-| `ExecucaoFinalizada` | Evento | Execução → OS | — |
-| `ExecucaoFalhou` | Evento (compensação) | Execução → OS | — |
+Este serviço não consome mais nenhum comando do OS Service — diagnóstico e execução são sempre ação manual via REST (ver seção anterior). Só publica eventos de volta:
+
+| Mensagem | Tipo | Direção |
+|---|---|---|
+| `DiagnosticoIniciado` | Evento | Execução → OS |
+| `DiagnosticoFinalizado` | Evento | Execução → OS |
+| `DiagnosticoFalhou` | Evento (compensação) | Execução → OS |
+| `ExecucaoIniciada` | Evento | Execução → OS |
+| `ExecucaoFinalizada` | Evento | Execução → OS |
+| `ExecucaoFalhou` | Evento (compensação) | Execução → OS |
 
 Publishers em `Infrastructure/Messaging/MassTransitSagaEventPublisher.cs`, reagindo a
 domain events via `PublicarDiagnosticoFinalizadoHandler`/`PublicarExecucaoFinalizadaHandler`/

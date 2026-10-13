@@ -3,7 +3,6 @@ using Application.Common.Interfaces;
 using Infrastructure.Database;
 using Infrastructure.DomainEvents;
 using Infrastructure.Messaging;
-using Infrastructure.Messaging.Consumers;
 using MassTransit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -53,8 +52,6 @@ public static class DependencyInjection
 
         services.AddMassTransit(x =>
         {
-            x.AddConsumer<IniciarExecucaoConsumer>();
-
             x.UsingRabbitMq((context, cfg) =>
             {
                 cfg.Host(rabbitMq.Host, rabbitMq.VirtualHost, h =>

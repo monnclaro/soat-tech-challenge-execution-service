@@ -15,11 +15,11 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Controllers.Execucoes;
 
-// Diagnóstico (iniciar/finalizar) é sempre ação manual por esta via REST — nunca
-// disparado automaticamente pela criação de uma OS (ver ADR da saga no OS Service).
-// Já execução/cancelamento seguem disparados em produção pelos consumers de
-// mensageria (comando IniciarExecucao do OS Service); a via REST pra eles fica
-// mantida para depuração/teste manual.
+// Todas as transições aqui expostas (diagnóstico, execução item a item,
+// cancelamento) são sempre ação manual por esta via REST — nenhuma é disparada
+// automaticamente pela OS (criação da OS / aprovação do pagamento, por exemplo).
+// Este serviço não consome mais nenhum comando do OS Service: só publica eventos
+// de volta, a partir dessas ações manuais (ver ADR da saga no OS Service).
 // Controller "fino": cada ação apenas monta o Input e devolve o Result do presenter
 // correspondente, sem nenhum branching próprio — a lógica real já é coberta pelos testes
 // de ExecucaoController/UseCases (Application) e dos Presenters; excluído da cobertura.

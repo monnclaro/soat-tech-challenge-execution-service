@@ -36,7 +36,7 @@ internal static class ExecucaoOrdemServicoMapper
     };
 
     public static ExecucaoOrdemServico ToDomain(ExecucaoOrdemServicoDocument document) =>
-        ExecucaoOrdemServico.Reidratar(
+        ExecucaoOrdemServico.Reidratar(new ExecucaoOrdemServicoSnapshot(
             document.IdOrdemServico,
             document.Status,
             document.DataCriacao,
@@ -47,5 +47,5 @@ internal static class ExecucaoOrdemServicoMapper
             [.. document.Servicos.Select(s => ItemServico.Reidratar(
                 s.Id, s.IdServico, s.NomeServico, s.Valor, s.Status, s.DataInicioExecucao, s.DataFinalizacaoExecucao))],
             [.. document.Produtos.Select(p => ItemProduto.Reidratar(
-                p.Id, p.IdProduto, p.NomeProduto, p.ValorUnitario, p.Quantidade))]);
+                p.Id, p.IdProduto, p.NomeProduto, p.ValorUnitario, p.Quantidade))]));
 }

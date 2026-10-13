@@ -8,6 +8,8 @@ public interface ISagaEventPublisher
 {
     Task PublicarDiagnosticoIniciado(Guid idOrdemServico, CancellationToken ct = default);
 
+    Task PublicarExecucaoIniciada(Guid idOrdemServico, CancellationToken ct = default);
+
     Task PublicarDiagnosticoFinalizado(
         Guid idOrdemServico,
         IReadOnlyList<ItemServicoDiagnosticado> servicos,

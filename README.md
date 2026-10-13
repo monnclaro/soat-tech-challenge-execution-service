@@ -16,16 +16,14 @@ Este serviço nunca cria uma Ordem de Serviço — ele recebe o `IdOrdemServico`
 
 ## Papel na saga
 
-O OS Service é o orquestrador: seu próprio agregado `OrdemServico` guarda o estado da saga e reage a domain events publicando comandos. Este serviço só reage a comandos e publica eventos de volta — não conhece os outros passos da saga (orçamento, pagamento), só os dois que lhe dizem respeito:
+O OS Service é o orquestrador: seu próprio agregado `OrdemServico` guarda o estado da saga. Este serviço não recebe nenhum comando do OS Service — nem para iniciar o diagnóstico, nem para iniciar a execução: as duas coisas são sempre **ação manual** aqui (`PATCH /api/v1/execucoes/{id}/diagnostico/iniciar` e `PATCH /api/v1/execucoes/{id}/servicos/{idServico}/iniciar-execucao`), nunca automáticas (nem ao criar a OS, nem ao aprovar o pagamento). Este serviço só publica eventos de volta, confirmando o que já aconteceu:
 
-Diagnóstico é exceção: não existe comando `IniciarDiagnostico` vindo do OS Service — abrir a fila de execução é sempre uma **ação manual** aqui (`PATCH /api/v1/execucoes/{id}/diagnostico/iniciar`), nunca automática ao criar a OS. O resto segue o padrão comando/evento:
-
-| Direção | Mensagem | Efeito neste serviço |
+| Direção | Mensagem | Efeito no OS Service |
 |---|---|---|
-| Execução → OS Service (evento) | `DiagnosticoIniciado` | Publicado ao abrir a fila de execução (ação manual acima) — confirma pro OS Service avançar para `EmDiagnostico` |
+| Execução → OS Service (evento) | `DiagnosticoIniciado` | Publicado ao abrir a fila de execução (ação manual) — confirma pro OS Service avançar para `EmDiagnostico` |
 | Execução → OS Service (evento) | `DiagnosticoFinalizado` | Publicado ao finalizar o registro dos itens diagnosticados |
 | Execução → OS Service (evento) | `DiagnosticoFalhou` | **Compensação**: publicado por `Cancelar(motivo)` se ainda estiver na fase de diagnóstico (veículo não atendível) |
-| OS Service → Execução (comando) | `IniciarExecucao` | Inicia a execução de todos os serviços ainda `AguardandoExecucao` (ver "Mensageria" abaixo) |
+| Execução → OS Service (evento) | `ExecucaoIniciada` | Publicado quando o primeiro serviço entra em execução (ação manual) — confirma pro OS Service avançar de `AguardandoExecucao` para `EmExecucao` |
 | Execução → OS Service (evento) | `ExecucaoFinalizada` | Publicado quando o último serviço termina a execução |
 | Execução → OS Service (evento) | `ExecucaoFalhou` | **Compensação**: publicado por `Cancelar(motivo)` se o diagnóstico já tiver sido finalizado (ex.: peça indisponível durante a execução) |
 
@@ -80,7 +78,7 @@ Este serviço **nunca emite tokens** — não há login/`AuthenticationControlle
 
 ## Mensageria (RabbitMQ/MassTransit)
 
-`IniciarExecucaoConsumer` reage ao comando publicado pelo OS Service, reaproveitando os use cases já existentes (mesma regra de negócio dos endpoints REST internos — nenhuma lógica duplicada entre a via HTTP e a via mensageria). Como o comando `IniciarExecucao` só carrega o `IdOrdemServico` (o OS Service não acompanha os serviços item a item), o consumer busca a própria `ExecucaoOrdemServico` e inicia a execução de todos os serviços ainda `AguardandoExecucao` (não existe um método de domínio para iniciar todos de uma vez — o consumer itera e chama `IniciarExecucaoServicoUseCase` por item). Diagnóstico não tem consumer equivalente — é sempre ação manual via REST (ver "Papel na saga" acima). Ao iniciar/finalizar o diagnóstico ou finalizar o último serviço, publica `DiagnosticoIniciado`/`DiagnosticoFinalizado`/`ExecucaoFinalizada` (via handlers reagindo a domain events).
+Este serviço não consome nenhum comando do OS Service — diagnóstico e execução (item a item) são sempre ação manual via REST (ver "Papel na saga" acima), nunca disparados automaticamente pela criação da OS ou pela aprovação do pagamento. Só publica eventos de volta: ao iniciar/finalizar o diagnóstico, ao primeiro serviço entrar em execução e ao finalizar o último, publica `DiagnosticoIniciado`/`DiagnosticoFinalizado`/`ExecucaoIniciada`/`ExecucaoFinalizada` (via handlers reagindo a domain events, implementados em `Infrastructure/Messaging/MassTransitSagaEventPublisher.cs`).
 
 Contratos em `Soat.Contracts.Saga` (`src/Application/Messaging/Contracts/SagaContracts.cs`), cópia idêntica à dos outros dois serviços — mantida por convenção em cada repo em vez de um pacote NuGet compartilhado, para evitar a complexidade de um feed privado nesta fase do projeto (são DTOs puros, marcados com as interfaces `ISagaCommand`/`ISagaEvent` para deixar explícito no próprio tipo se é um comando ou um evento da saga).
 

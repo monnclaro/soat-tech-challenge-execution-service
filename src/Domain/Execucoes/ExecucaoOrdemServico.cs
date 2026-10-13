@@ -117,7 +117,9 @@ public class ExecucaoOrdemServico : Entity
 
     // Move a execução para EmExecucao na primeira chamada (não existe mais um passo
     // separado de "aprovação de orçamento" aqui — isso é responsabilidade da saga no
-    // OS Service/Billing Service; ao chegar aqui, o pagamento já foi aprovado).
+    // OS Service/Billing Service; ao chegar aqui, o pagamento já foi aprovado). Ação
+    // sempre manual (endpoint iniciar-execucao, item a item) — nunca disparada
+    // automaticamente pelo OS Service.
     public void IniciarExecucaoServico(Guid idServico)
     {
         if (Status is not (StatusExecucaoOrdemServico.DiagnosticoFinalizado or StatusExecucaoOrdemServico.EmExecucao))
@@ -134,6 +136,8 @@ public class ExecucaoOrdemServico : Entity
         {
             Status = StatusExecucaoOrdemServico.EmExecucao;
             DataInicioExecucao = DateTime.UtcNow;
+
+            Raise(new ExecucaoIniciadaDomainEvent(IdOrdemServico));
         }
     }
 
@@ -188,30 +192,21 @@ public class ExecucaoOrdemServico : Entity
 
     // Usado exclusivamente pelo mapper de persistência (Infrastructure) para reconstruir
     // o agregado a partir do documento MongoDB, sem reexecutar as regras de criação.
-    public static ExecucaoOrdemServico Reidratar(
-        Guid idOrdemServico,
-        StatusExecucaoOrdemServico status,
-        DateTime dataCriacao,
-        DateTime? dataFinalizacaoDiagnostico,
-        DateTime? dataInicioExecucao,
-        DateTime? dataFinalizacao,
-        string? motivoCancelamento,
-        List<ItemServico> servicos,
-        List<ItemProduto> produtos)
+    public static ExecucaoOrdemServico Reidratar(ExecucaoOrdemServicoSnapshot snapshot)
     {
         var execucao = new ExecucaoOrdemServico
         {
-            IdOrdemServico = idOrdemServico,
-            Status = status,
-            DataCriacao = dataCriacao,
-            DataFinalizacaoDiagnostico = dataFinalizacaoDiagnostico,
-            DataInicioExecucao = dataInicioExecucao,
-            DataFinalizacao = dataFinalizacao,
-            MotivoCancelamento = motivoCancelamento,
+            IdOrdemServico = snapshot.IdOrdemServico,
+            Status = snapshot.Status,
+            DataCriacao = snapshot.DataCriacao,
+            DataFinalizacaoDiagnostico = snapshot.DataFinalizacaoDiagnostico,
+            DataInicioExecucao = snapshot.DataInicioExecucao,
+            DataFinalizacao = snapshot.DataFinalizacao,
+            MotivoCancelamento = snapshot.MotivoCancelamento,
         };
 
-        execucao._servicos.AddRange(servicos);
-        execucao._produtos.AddRange(produtos);
+        execucao._servicos.AddRange(snapshot.Servicos);
+        execucao._produtos.AddRange(snapshot.Produtos);
 
         return execucao;
     }
