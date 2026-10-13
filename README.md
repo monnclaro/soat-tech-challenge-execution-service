@@ -18,9 +18,11 @@ Este serviço nunca cria uma Ordem de Serviço — ele recebe o `IdOrdemServico`
 
 O OS Service é o orquestrador: seu próprio agregado `OrdemServico` guarda o estado da saga e reage a domain events publicando comandos. Este serviço só reage a comandos e publica eventos de volta — não conhece os outros passos da saga (orçamento, pagamento), só os dois que lhe dizem respeito:
 
+Diagnóstico é exceção: não existe comando `IniciarDiagnostico` vindo do OS Service — abrir a fila de execução é sempre uma **ação manual** aqui (`PATCH /api/v1/execucoes/{id}/diagnostico/iniciar`), nunca automática ao criar a OS. O resto segue o padrão comando/evento:
+
 | Direção | Mensagem | Efeito neste serviço |
 |---|---|---|
-| OS Service → Execução (comando) | `IniciarDiagnostico` | Abre a fila de execução para a OS (`IniciarDiagnosticoUseCase`) |
+| Execução → OS Service (evento) | `DiagnosticoIniciado` | Publicado ao abrir a fila de execução (ação manual acima) — confirma pro OS Service avançar para `EmDiagnostico` |
 | Execução → OS Service (evento) | `DiagnosticoFinalizado` | Publicado ao finalizar o registro dos itens diagnosticados |
 | Execução → OS Service (evento) | `DiagnosticoFalhou` | **Compensação**: publicado por `Cancelar(motivo)` se ainda estiver na fase de diagnóstico (veículo não atendível) |
 | OS Service → Execução (comando) | `IniciarExecucao` | Inicia a execução de todos os serviços ainda `AguardandoExecucao` (ver "Mensageria" abaixo) |
@@ -78,7 +80,7 @@ Este serviço **nunca emite tokens** — não há login/`AuthenticationControlle
 
 ## Mensageria (RabbitMQ/MassTransit)
 
-`IniciarDiagnosticoConsumer` e `IniciarExecucaoConsumer` reagem aos comandos publicados pelo OS Service, reaproveitando os use cases já existentes (mesma regra de negócio dos endpoints REST internos — nenhuma lógica duplicada entre a via HTTP e a via mensageria). Como o comando `IniciarExecucao` só carrega o `IdOrdemServico` (o OS Service não acompanha os serviços item a item), o consumer busca a própria `ExecucaoOrdemServico` e inicia a execução de todos os serviços ainda `AguardandoExecucao` (não existe um método de domínio para iniciar todos de uma vez — o consumer itera e chama `IniciarExecucaoServicoUseCase` por item). Ao finalizar o diagnóstico ou o último serviço, publica `DiagnosticoFinalizado`/`ExecucaoFinalizada` (via `PublicarDiagnosticoFinalizadoHandler`/`PublicarExecucaoFinalizadaHandler`, reagindo a domain events).
+`IniciarExecucaoConsumer` reage ao comando publicado pelo OS Service, reaproveitando os use cases já existentes (mesma regra de negócio dos endpoints REST internos — nenhuma lógica duplicada entre a via HTTP e a via mensageria). Como o comando `IniciarExecucao` só carrega o `IdOrdemServico` (o OS Service não acompanha os serviços item a item), o consumer busca a própria `ExecucaoOrdemServico` e inicia a execução de todos os serviços ainda `AguardandoExecucao` (não existe um método de domínio para iniciar todos de uma vez — o consumer itera e chama `IniciarExecucaoServicoUseCase` por item). Diagnóstico não tem consumer equivalente — é sempre ação manual via REST (ver "Papel na saga" acima). Ao iniciar/finalizar o diagnóstico ou finalizar o último serviço, publica `DiagnosticoIniciado`/`DiagnosticoFinalizado`/`ExecucaoFinalizada` (via handlers reagindo a domain events).
 
 Contratos em `Soat.Contracts.Saga` (`src/Application/Messaging/Contracts/SagaContracts.cs`), cópia idêntica à dos outros dois serviços — mantida por convenção em cada repo em vez de um pacote NuGet compartilhado, para evitar a complexidade de um feed privado nesta fase do projeto (são DTOs puros, marcados com as interfaces `ISagaCommand`/`ISagaEvent` para deixar explícito no próprio tipo se é um comando ou um evento da saga).
 

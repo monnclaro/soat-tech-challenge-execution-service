@@ -4,8 +4,8 @@ using Domain.Execucoes.Gateways;
 
 namespace Application.Execucoes.UseCases.IniciarDiagnostico;
 
-// Disparado pelo comando IniciarDiagnostico publicado pelo OS Service ao criar
-// uma OS (IniciarDiagnosticoConsumer). Ao abrir a execução, o agregado levanta
+// Disparado por ação manual (endpoint PATCH .../diagnostico/iniciar) — nunca
+// automaticamente ao criar a OS. Ao abrir a execução, o agregado levanta
 // DiagnosticoIniciadoDomainEvent, que confirma de volta pro OS Service avançar
 // a OS para EmDiagnostico — sem essa confirmação, a OS fica presa em Recebida.
 public class IniciarDiagnosticoUseCase : IUseCase

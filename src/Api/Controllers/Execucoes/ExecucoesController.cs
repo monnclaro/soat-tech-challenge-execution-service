@@ -15,9 +15,11 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Controllers.Execucoes;
 
-// As transições PATCH aqui expostas (diagnóstico/execução) são disparadas em produção
-// pelos consumers de mensageria (comandos IniciarDiagnostico/IniciarExecucao do OS
-// Service); a via REST fica mantida para depuração/teste manual.
+// Diagnóstico (iniciar/finalizar) é sempre ação manual por esta via REST — nunca
+// disparado automaticamente pela criação de uma OS (ver ADR da saga no OS Service).
+// Já execução/cancelamento seguem disparados em produção pelos consumers de
+// mensageria (comando IniciarExecucao do OS Service); a via REST pra eles fica
+// mantida para depuração/teste manual.
 // Controller "fino": cada ação apenas monta o Input e devolve o Result do presenter
 // correspondente, sem nenhum branching próprio — a lógica real já é coberta pelos testes
 // de ExecucaoController/UseCases (Application) e dos Presenters; excluído da cobertura.
