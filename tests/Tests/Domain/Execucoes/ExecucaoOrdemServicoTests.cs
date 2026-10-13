@@ -208,6 +208,20 @@ public class ExecucaoOrdemServicoTests
         execucao.Status.Should().Be(StatusExecucaoOrdemServico.EmExecucao);
         execucao.DataInicioExecucao.Should().NotBeNull();
         execucao.Servicos[0].Status.Should().Be(StatusItemServico.EmExecucao);
+        execucao.DomainEvents.Should().ContainSingle(e => e is ExecucaoIniciadaDomainEvent);
+    }
+
+    [Fact]
+    public void IniciarExecucaoServico_SegundaChamada_NaoDeveRaiseExecucaoIniciadaNovamente()
+    {
+        var execucao = CriarComDiagnosticoFinalizado(quantidadeServicos: 2);
+        var idServico1 = execucao.Servicos[0].IdServico;
+        var idServico2 = execucao.Servicos[1].IdServico;
+
+        execucao.IniciarExecucaoServico(idServico1);
+        execucao.IniciarExecucaoServico(idServico2);
+
+        execucao.DomainEvents.Count(e => e is ExecucaoIniciadaDomainEvent).Should().Be(1);
     }
 
     [Fact]

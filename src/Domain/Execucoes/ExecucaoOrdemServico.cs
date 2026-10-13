@@ -117,7 +117,9 @@ public class ExecucaoOrdemServico : Entity
 
     // Move a execução para EmExecucao na primeira chamada (não existe mais um passo
     // separado de "aprovação de orçamento" aqui — isso é responsabilidade da saga no
-    // OS Service/Billing Service; ao chegar aqui, o pagamento já foi aprovado).
+    // OS Service/Billing Service; ao chegar aqui, o pagamento já foi aprovado). Ação
+    // sempre manual (endpoint iniciar-execucao, item a item) — nunca disparada
+    // automaticamente pelo OS Service.
     public void IniciarExecucaoServico(Guid idServico)
     {
         if (Status is not (StatusExecucaoOrdemServico.DiagnosticoFinalizado or StatusExecucaoOrdemServico.EmExecucao))
@@ -134,6 +136,8 @@ public class ExecucaoOrdemServico : Entity
         {
             Status = StatusExecucaoOrdemServico.EmExecucao;
             DataInicioExecucao = DateTime.UtcNow;
+
+            Raise(new ExecucaoIniciadaDomainEvent(IdOrdemServico));
         }
     }
 
