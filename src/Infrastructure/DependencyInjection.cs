@@ -53,7 +53,6 @@ public static class DependencyInjection
 
         services.AddMassTransit(x =>
         {
-            x.AddConsumer<IniciarDiagnosticoConsumer>();
             x.AddConsumer<IniciarExecucaoConsumer>();
 
             x.UsingRabbitMq((context, cfg) =>

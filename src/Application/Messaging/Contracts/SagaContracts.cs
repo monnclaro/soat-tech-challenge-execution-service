@@ -33,7 +33,6 @@ public record ItemProdutoDiagnosticado(Guid IdProduto, string NomeProduto, decim
 
 #region Comandos — OS Service -> Execução Service
 
-public record IniciarDiagnostico(Guid IdOrdemServico, Guid IdCliente, Guid IdVeiculo) : ISagaCommand;
 public record IniciarExecucao(Guid IdOrdemServico) : ISagaCommand;
 
 #endregion
@@ -50,10 +49,11 @@ public record GerarOrcamento(
 
 #region Eventos — Execução Service -> OS Service
 
-// Confirma que a fila de execução recebeu o comando IniciarDiagnostico e abriu
-// a execução de verdade — só então a OS passa para EmDiagnostico no OS Service.
-// Evita que a OS "otimisticamente" avance de status sem o Execução Service ter
-// confirmado nada (mesmo padrão reativo dos demais eventos desta região).
+// Confirma que o Execução Service abriu a fila de execução de verdade (ação
+// manual, iniciada por lá — ver endpoint IniciarDiagnostico) — só então a OS
+// passa para EmDiagnostico no OS Service. Evita que a OS "otimisticamente"
+// avance de status sem o Execução Service ter confirmado nada (mesmo padrão
+// reativo dos demais eventos desta região).
 public record DiagnosticoIniciado(Guid IdOrdemServico) : ISagaEvent;
 
 public record DiagnosticoFinalizado(

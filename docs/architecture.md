@@ -111,9 +111,10 @@ sequenceDiagram
     participant OS as OS Service
     participant Exec as Execução Service
 
-    OS-->>Exec: IniciarDiagnostico (comando)
+    Note over Exec: Ação manual (PATCH .../diagnostico/iniciar)<br/>— nunca disparado automaticamente pela OS
     Exec->>Exec: Abrir() → AguardandoDiagnostico
     Exec->>Exec: IniciarDiagnostico() → EmDiagnostico
+    Exec-->>OS: DiagnosticoIniciado (evento)
     Note over Exec: Mecânico registra serviços/produtos<br/>(PATCH .../diagnostico/finalizar)
 
     alt Diagnóstico concluído
@@ -142,8 +143,8 @@ sequenceDiagram
 
 | Mensagem | Tipo | Direção | Consumer/Handler |
 |---|---|---|---|
-| `IniciarDiagnostico` | Comando | OS → Execução | `IniciarDiagnosticoConsumer` |
 | `IniciarExecucao` | Comando | OS → Execução | `IniciarExecucaoConsumer` (itera os itens `AguardandoExecucao`) |
+| `DiagnosticoIniciado` | Evento | Execução → OS | — (publicado ao abrir a fila via ação manual, não comando) |
 | `DiagnosticoFinalizado` | Evento | Execução → OS | — |
 | `DiagnosticoFalhou` | Evento (compensação) | Execução → OS | — |
 | `ExecucaoFinalizada` | Evento | Execução → OS | — |
